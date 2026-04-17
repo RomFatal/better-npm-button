@@ -1,0 +1,161 @@
+{
+  "name": "better-npm-button",
+  "displayName": "Better Npm Button",
+  "description": "Run package.json scripts from the Activity Bar with a cleaner npm-style workflow.",
+  "version": "0.1.0",
+  "publisher": "romfatal",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "icon": "media/icon.png",
+  "keywords": [
+    "npm",
+    "pnpm",
+    "yarn",
+    "bun",
+    "scripts",
+    "package.json"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "workspaceContains:package.json",
+    "onView:runSidebar.scripts",
+    "onCommand:runSidebar.refresh",
+    "onCommand:runSidebar.rerunLast",
+    "onCommand:runSidebar.runScript"
+  ],
+  "files": [
+    "out",
+    "media",
+    "resources",
+    "README.md",
+    "CHANGELOG.md",
+    "package.json"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "This extension runs scripts from the opened workspace."
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "This extension requires access to a local file system and integrated terminal."
+    }
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "runSidebar.refresh",
+        "title": "Run: Refresh Scripts",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "runSidebar.rerunLast",
+        "title": "Run: Rerun Last Script",
+        "icon": "$(history)"
+      },
+      {
+        "command": "runSidebar.runScript",
+        "title": "Run: Execute Script"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "runSidebar",
+          "title": "Run",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "runSidebar": [
+        {
+          "id": "runSidebar.scripts",
+          "name": "Scripts"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "runSidebar.refresh",
+          "when": "view == runSidebar.scripts",
+          "group": "navigation"
+        },
+        {
+          "command": "runSidebar.rerunLast",
+          "when": "view == runSidebar.scripts",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Run",
+      "properties": {
+        "runSidebar.scope": {
+          "type": "string",
+          "enum": [
+            "root",
+            "all"
+          ],
+          "default": "root",
+          "description": "Choose whether to show scripts only from the first workspace folder root package.json or from every package.json in the workspace."
+        },
+        "runSidebar.itemStyle": {
+          "type": "string",
+          "enum": [
+            "icon",
+            "text"
+          ],
+          "default": "icon",
+          "description": "Display scripts with a theme-aware play icon or as plain text."
+        },
+        "runSidebar.packageManager": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "npm",
+            "pnpm",
+            "yarn",
+            "bun"
+          ],
+          "default": "auto",
+          "description": "Choose which package manager to use. Auto detects from lockfiles."
+        },
+        "runSidebar.terminalMode": {
+          "type": "string",
+          "enum": [
+            "reuse",
+            "new"
+          ],
+          "default": "new",
+          "description": "Create a new terminal for every script run so the terminal title can match the script name, or reuse a shared terminal with a static title."
+        },
+        "runSidebar.focusTerminal": {
+          "type": "boolean",
+          "default": true,
+          "description": "Focus the integrated terminal after starting a script."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "clean": "rm -rf out"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/vscode": "^1.116.0",
+    "typescript": "^6.0.3"
+  }
+}
