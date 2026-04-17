@@ -10,6 +10,7 @@ export interface ScriptRunRequest {
 
 export class TerminalService implements vscode.Disposable {
   private sharedTerminal: vscode.Terminal | undefined;
+  private sharedTerminalCwd: string | undefined;
   private lastRun: ScriptRunRequest | undefined;
   private readonly disposables: vscode.Disposable[];
 
@@ -18,6 +19,7 @@ export class TerminalService implements vscode.Disposable {
       vscode.window.onDidCloseTerminal((terminal) => {
         if (terminal === this.sharedTerminal) {
           this.sharedTerminal = undefined;
+          this.sharedTerminalCwd = undefined;
         }
       })
     ];
@@ -30,7 +32,7 @@ export class TerminalService implements vscode.Disposable {
 
     terminal.show(!shouldFocus);
 
-    terminal.sendText(buildRunCommand(request, config.terminalMode), true);
+    terminal.sendText(buildRunCommand(request), true);
     this.lastRun = request;
   }
 
@@ -57,31 +59,39 @@ export class TerminalService implements vscode.Disposable {
     }
 
     if (!this.sharedTerminal) {
-      this.sharedTerminal = vscode.window.createTerminal({
-        name: "Run",
-        cwd: request.packageDir
-      });
+      this.sharedTerminal = createSharedTerminal(request.packageDir);
+      this.sharedTerminalCwd = normalizeDirectoryKey(request.packageDir.fsPath);
+      return this.sharedTerminal;
+    }
+
+    const nextCwd = normalizeDirectoryKey(request.packageDir.fsPath);
+    if (this.sharedTerminalCwd !== nextCwd) {
+      this.sharedTerminal.dispose();
+      this.sharedTerminal = createSharedTerminal(request.packageDir);
+      this.sharedTerminalCwd = nextCwd;
     }
 
     return this.sharedTerminal;
   }
 }
 
-function buildRunCommand(request: ScriptRunRequest, terminalMode: TerminalMode): string {
-  const runCommand = `${request.packageManager} run ${escapeShellArgument(request.scriptName)}`;
-  if (terminalMode === "new") {
-    return runCommand;
-  }
-
-  return `${buildChangeDirectoryCommand(request.packageDir.fsPath)} && ${runCommand}`;
+function buildRunCommand(request: ScriptRunRequest): string {
+  return `${request.packageManager} run ${escapeShellArgument(request.scriptName)}`;
 }
 
-function buildChangeDirectoryCommand(directoryPath: string): string {
+function createSharedTerminal(packageDir: vscode.Uri): vscode.Terminal {
+  return vscode.window.createTerminal({
+    name: "Run",
+    cwd: packageDir
+  });
+}
+
+function normalizeDirectoryKey(directoryPath: string): string {
   if (process.platform === "win32") {
-    return `cd /d ${escapeShellArgument(directoryPath)}`;
+    return directoryPath.toLowerCase();
   }
 
-  return `cd ${escapeShellArgument(directoryPath)}`;
+  return directoryPath;
 }
 
 function escapeShellArgument(value: string): string {

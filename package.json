@@ -2,9 +2,18 @@
   "name": "better-npm-button",
   "displayName": "Better Npm Button",
   "description": "Run package.json scripts from the Activity Bar with a cleaner npm-style workflow.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "romfatal",
   "license": "MIT",
+  "preview": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RomFatal/better-npm-button.git"
+  },
+  "homepage": "https://github.com/RomFatal/better-npm-button#readme",
+  "bugs": {
+    "url": "https://github.com/RomFatal/better-npm-button/issues"
+  },
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -30,8 +39,9 @@
   ],
   "files": [
     "out",
-    "media",
+    "media/icon.png",
     "resources",
+    "LICENSE",
     "README.md",
     "CHANGELOG.md",
     "package.json"
@@ -79,7 +89,8 @@
       "runSidebar": [
         {
           "id": "runSidebar.scripts",
-          "name": "Scripts"
+          "name": "Scripts",
+          "icon": "resources/icon.svg"
         }
       ]
     },
@@ -151,11 +162,12 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "clean": "rm -rf out"
+    "clean": "rm -rf out",
+    "package:vsix": "npx @vscode/vsce package"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "@types/vscode": "^1.116.0",
+    "@types/vscode": "^1.74.0",
     "typescript": "^6.0.3"
   }
 }

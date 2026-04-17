@@ -1,29 +1,103 @@
 # Better Npm Button
 
-Better Npm Button is a lightweight VS Code extension that adds a dedicated `Run` Activity Bar view for `package.json` scripts.
+Better Npm Button adds a dedicated `Run` view to the VS Code Activity Bar so you can discover and run `package.json` scripts without switching back to the explorer or terminal first.
+
+## Why It Exists
+
+VS Code already exposes npm scripts in a few places, but the experience is easy to miss and gets noisy in multi-package workspaces. Better Npm Button keeps script execution in one predictable sidebar with a small set of controls:
+
+- a dedicated Activity Bar entry
+- root-only or whole-workspace package discovery
+- one-click script execution
+- rerun-last and refresh actions
+- automatic `npm` / `pnpm` / `yarn` / `bun` detection
 
 ## Features
 
-- Native Activity Bar icon and view container titled `Run`
-- Shows scripts from the root `package.json` or from every package in the workspace
-- Theme-aware icon mode or plain text mode
-- One click to run a script in the integrated terminal
-- Auto-detects `npm`, `pnpm`, `yarn`, and `bun`
-- Refresh and rerun-last commands in the view title
-- Auto-refreshes when `package.json` files change
+- Adds a `Run` Activity Bar container with a `Scripts` tree view
+- Reads scripts from the root `package.json` or every package in the workspace
+- Groups monorepo scripts by package when `runSidebar.scope` is set to `all`
+- Supports `npm`, `pnpm`, `yarn`, and `bun`
+- Lets you show scripts with a theme-aware play icon or plain text
+- Refreshes automatically when `package.json` files are created, changed, or deleted
+- Supports rerunning the last script from the view title
+
+## Install
+
+### From a VSIX
+
+1. Open VS Code.
+2. Open the Extensions view.
+3. Open the `...` menu.
+4. Select `Install from VSIX...`.
+5. Choose the packaged `.vsix` file.
+
+## Use
+
+1. Open a folder or workspace that contains at least one `package.json`.
+2. Click the `Run` icon in the Activity Bar.
+3. Expand a package if needed.
+4. Click a script to execute it in the integrated terminal.
+
+Use the title bar actions in the view to:
+
+- refresh script discovery
+- rerun the last executed script
 
 ## Settings
 
-- `runSidebar.scope`: `root` or `all`
-- `runSidebar.itemStyle`: `icon` or `text`
-- `runSidebar.packageManager`: `auto`, `npm`, `pnpm`, `yarn`, or `bun`
-- `runSidebar.terminalMode`: `reuse` or `new` (`new` is the default so the terminal title matches the script name)
-- `runSidebar.focusTerminal`: `true` or `false`
+### `runSidebar.scope`
 
-## Behavior
+- `root`: show scripts only from the first workspace folder root `package.json`
+- `all`: scan all workspace folders and show every discovered package
 
-- `root` scope reads only the root `package.json` from the first workspace folder.
-- `all` scope scans all workspace folders and groups scripts by package.
-- Clicking a script sends the matching command to the VS Code integrated terminal.
-- In `new` terminal mode, the terminal title is the script name in `root` scope and `package: script` in `all` scope.
-- In `reuse` mode, VS Code keeps a shared static terminal title because the public API does not support renaming an existing terminal programmatically.
+### `runSidebar.itemStyle`
+
+- `icon`: show a play icon next to each script
+- `text`: show scripts without the icon
+
+### `runSidebar.packageManager`
+
+- `auto`: detect from lockfiles
+- `npm`, `pnpm`, `yarn`, `bun`: force a specific package manager
+
+### `runSidebar.terminalMode`
+
+- `new`: create a new terminal per run
+- `reuse`: reuse one shared terminal named `Run`
+
+### `runSidebar.focusTerminal`
+
+- `true`: focus the terminal after starting a script
+- `false`: keep focus in the sidebar
+
+## Behavior Notes
+
+- In `root` mode, the terminal title uses the script name.
+- In `all` mode, the terminal title uses `package: script`.
+- In `reuse` mode, the extension recreates the shared terminal when you switch to a different package directory so the shell starts in the correct working directory.
+- Automatic package-manager detection walks up from the selected package directory to the workspace root and looks for known lockfiles.
+
+## Known Limitations
+
+- The extension only reads `package.json` scripts. It does not parse custom task runners or shell aliases.
+- `root` mode only uses the first workspace folder.
+- Untrusted workspaces and virtual workspaces are not supported.
+- There are no script filtering, pinning, or favorites features yet.
+
+## Development
+
+```bash
+npm install
+npm run compile
+```
+
+To package a local release:
+
+```bash
+npm run package:vsix
+```
+
+## License
+
+MIT
