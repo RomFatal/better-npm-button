@@ -2,7 +2,7 @@
   "name": "better-npm-button",
   "displayName": "Better Npm Button",
   "description": "Run package.json scripts from the Activity Bar with a cleaner npm-style workflow.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "romfatal",
   "license": "MIT",
   "preview": false,
@@ -120,14 +120,10 @@
           "default": "root",
           "description": "Choose whether to show scripts only from the first workspace folder root package.json or from every package.json in the workspace."
         },
-        "runSidebar.itemStyle": {
-          "type": "string",
-          "enum": [
-            "icon",
-            "text"
-          ],
-          "default": "icon",
-          "description": "Display scripts with a theme-aware play icon or as plain text."
+        "runSidebar.showPlayIcon": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a theme-aware play icon next to each script."
         },
         "runSidebar.packageManager": {
           "type": "string",

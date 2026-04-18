@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.2.1
+
+- Replaced the script item style dropdown with a simpler `runSidebar.showPlayIcon` checkbox setting
+- Kept compatibility with the legacy `runSidebar.itemStyle` value when the new setting is not set
+
 ## 0.1.0
 
 - Renamed the extension to Better Npm Button
