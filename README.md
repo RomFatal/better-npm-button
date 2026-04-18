@@ -2,6 +2,10 @@
 
 Better Npm Button adds a dedicated `Run` view to the VS Code Activity Bar so you can discover and run `package.json` scripts without switching back to the explorer or terminal first.
 
+## Screenshot
+
+![Better Npm Button Run view showing monorepo scripts](media/run-view-screenshot.png)
+
 ## Why It Exists
 
 VS Code already exposes npm scripts in a few places, but the experience is easy to miss and gets noisy in multi-package workspaces. Better Npm Button keeps script execution in one predictable sidebar with a small set of controls:
@@ -22,10 +26,6 @@ VS Code already exposes npm scripts in a few places, but the experience is easy 
 - Includes an optional button-style script UI for a more prominent run action
 - Refreshes automatically when `package.json` files are created, changed, or deleted
 - Supports rerunning the last script from the view title
-
-## Screenshot
-
-![Better Npm Button Run view showing monorepo scripts](media/run-view-screenshot.png)
 
 ## Install
 
