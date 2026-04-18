@@ -23,6 +23,10 @@ VS Code already exposes npm scripts in a few places, but the experience is easy 
 - Refreshes automatically when `package.json` files are created, changed, or deleted
 - Supports rerunning the last script from the view title
 
+## Screenshot
+
+![Better Npm Button Run view showing monorepo scripts](media/run-view-screenshot.png)
+
 ## Install
 
 ### From a VSIX

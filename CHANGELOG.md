@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.2.4
+
+- Added a README screenshot preview for the `Run` view
+- Packaged the screenshot asset with the extension documentation
+
 ## 0.2.2
 
 - Added a new `runSidebar.scriptUiMode` setting with a `button` option for a more action-oriented script row layout
