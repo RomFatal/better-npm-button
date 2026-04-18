@@ -104,6 +104,30 @@ To package a local release:
 npm run package:vsix
 ```
 
+## Automated Publishing
+
+This repository includes a GitHub Actions workflow at `.github/workflows/publish.yml`.
+It publishes to the Visual Studio Marketplace when you push a git tag formatted like `v0.2.3`.
+
+Before it can publish, add a GitHub repository secret named `VSCE_PAT`.
+The value must be a Visual Studio Marketplace personal access token with Marketplace manage access.
+
+Release flow:
+
+1. Update the `version` in `package.json`.
+2. Commit the release.
+3. Create a matching tag like `v0.2.3`.
+4. Push the commit and tag to GitHub.
+
+Example:
+
+```bash
+git add .
+git commit -m "Release 0.2.3"
+git tag v0.2.3
+git push origin main --tags
+```
+
 ## License
 
 MIT

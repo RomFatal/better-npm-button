@@ -168,9 +168,10 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "clean": "rm -rf out",
-    "package:vsix": "npx @vscode/vsce package"
+    "package:vsix": "vsce package"
   },
   "devDependencies": {
+    "@vscode/vsce": "^3.9.1",
     "@types/node": "^25.6.0",
     "@types/vscode": "^1.74.0",
     "typescript": "^6.0.3"
