@@ -2,7 +2,7 @@
   "name": "better-npm-button",
   "displayName": "Better Npm Button",
   "description": "Run package.json scripts from the Activity Bar with a cleaner npm-style workflow.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "publisher": "romfatal",
   "license": "MIT",
   "preview": false,
