@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.2.2
+
+- Added a new `runSidebar.scriptUiMode` setting with a `button` option for a more action-oriented script row layout
+- Kept the existing compact script list as the default UI
+
 ## 0.2.1
 
 - Replaced the script item style dropdown with a simpler `runSidebar.showPlayIcon` checkbox setting

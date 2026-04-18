@@ -2,7 +2,7 @@
   "name": "better-npm-button",
   "displayName": "Better Npm Button",
   "description": "Run package.json scripts from the Activity Bar with a cleaner npm-style workflow.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "romfatal",
   "license": "MIT",
   "preview": false,
@@ -124,6 +124,15 @@
           "type": "boolean",
           "default": true,
           "description": "Show a theme-aware play icon next to each script."
+        },
+        "runSidebar.scriptUiMode": {
+          "type": "string",
+          "enum": [
+            "default",
+            "button"
+          ],
+          "default": "default",
+          "description": "Choose between the standard script list and a more button-like script row layout."
         },
         "runSidebar.packageManager": {
           "type": "string",

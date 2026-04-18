@@ -1,10 +1,15 @@
 import * as vscode from "vscode";
-import { RunScope, getConfig } from "../config";
+import { RunScope, ScriptUiMode, getConfig } from "../config";
 import { PackageScriptFile } from "../services/packageDiscoveryService";
 
 export interface ScriptRunItem {
   packageFile: PackageScriptFile;
   scriptName: string;
+}
+
+interface ScriptDisplayOptions {
+  showPlayIcon: boolean;
+  uiMode: ScriptUiMode;
 }
 
 export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
@@ -29,11 +34,17 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
 
     if (!element) {
       const packages = await this.loadPackages(config.scope);
-      return this.getRootItems(packages, config.scope, config.showPlayIcon);
+      return this.getRootItems(packages, config.scope, {
+        showPlayIcon: config.showPlayIcon,
+        uiMode: config.scriptUiMode
+      });
     }
 
     if (element instanceof PackageItem) {
-      return this.getScriptItems(element.packageFile, config.showPlayIcon);
+      return this.getScriptItems(element.packageFile, {
+        showPlayIcon: config.showPlayIcon,
+        uiMode: config.scriptUiMode
+      });
     }
 
     return [];
@@ -42,7 +53,7 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
   private getRootItems(
     packages: PackageScriptFile[],
     scope: RunScope,
-    showPlayIcon: boolean
+    displayOptions: ScriptDisplayOptions
   ): RunItem[] {
     if ((vscode.workspace.workspaceFolders ?? []).length === 0) {
       return [new MessageItem("Open a workspace folder to show scripts.")];
@@ -54,7 +65,7 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
         return [new MessageItem("No root package.json found in the first workspace folder.")];
       }
 
-      return this.getScriptItems(packageFile, showPlayIcon, "No scripts found in the root package.json.");
+      return this.getScriptItems(packageFile, displayOptions, "No scripts found in the root package.json.");
     }
 
     if (packages.length === 0) {
@@ -66,7 +77,7 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
 
   private getScriptItems(
     packageFile: PackageScriptFile,
-    showPlayIcon: boolean,
+    displayOptions: ScriptDisplayOptions,
     emptyMessage = "No scripts found."
   ): RunItem[] {
     const scriptNames = Object.keys(packageFile.scripts).sort((left, right) => left.localeCompare(right));
@@ -74,7 +85,7 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       return [new MessageItem(emptyMessage)];
     }
 
-    return scriptNames.map((scriptName) => new ScriptItem(packageFile, scriptName, showPlayIcon));
+    return scriptNames.map((scriptName) => new ScriptItem(packageFile, scriptName, displayOptions));
   }
 }
 
@@ -99,9 +110,9 @@ class ScriptItem extends RunItem {
   public constructor(
     packageFile: PackageScriptFile,
     scriptName: string,
-    showPlayIcon: boolean
+    displayOptions: ScriptDisplayOptions
   ) {
-    super(scriptName, vscode.TreeItemCollapsibleState.None);
+    super(buildScriptLabel(scriptName, displayOptions.uiMode), vscode.TreeItemCollapsibleState.None);
 
     const scriptValue = packageFile.scripts[scriptName];
 
@@ -115,18 +126,24 @@ class ScriptItem extends RunItem {
         } satisfies ScriptRunItem
       ]
     };
-    this.description = scriptValue;
+    this.description = buildScriptDescription(scriptValue, displayOptions.uiMode);
     this.tooltip = new vscode.MarkdownString(
       [
+        displayOptions.uiMode === "button" ? `**Action:** Click to run \`${scriptName}\`` : undefined,
         `**Script:** \`${scriptName}\``,
         `**Command:** \`${scriptValue}\``,
         `**Package:** ${packageFile.displayName}`
-      ].join("\n\n")
+      ]
+        .filter((line): line is string => Boolean(line))
+        .join("\n\n")
     );
     this.contextValue = "script";
 
-    if (showPlayIcon) {
-      this.iconPath = new vscode.ThemeIcon("play-circle");
+    if (displayOptions.showPlayIcon) {
+      this.iconPath =
+        displayOptions.uiMode === "button"
+          ? new vscode.ThemeIcon("play-circle", new vscode.ThemeColor("terminal.ansiGreen"))
+          : new vscode.ThemeIcon("play-circle");
     }
   }
 }
@@ -137,4 +154,26 @@ class MessageItem extends RunItem {
 
     this.iconPath = new vscode.ThemeIcon("info");
   }
+}
+
+function buildScriptLabel(scriptName: string, uiMode: ScriptUiMode): string {
+  return uiMode === "button" ? `Run ${scriptName}` : scriptName;
+}
+
+function buildScriptDescription(scriptValue: string, uiMode: ScriptUiMode): string {
+  if (uiMode !== "button") {
+    return scriptValue;
+  }
+
+  return toSingleLinePreview(scriptValue, 52);
+}
+
+function toSingleLinePreview(value: string, maxLength: number): string {
+  const normalized = value.replace(/\s+/g, " ").trim();
+
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, maxLength - 3).trimEnd()}...`;
 }

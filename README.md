@@ -19,6 +19,7 @@ VS Code already exposes npm scripts in a few places, but the experience is easy 
 - Groups monorepo scripts by package when `runSidebar.scope` is set to `all`
 - Supports `npm`, `pnpm`, `yarn`, and `bun`
 - Lets you toggle a theme-aware play icon on or off
+- Includes an optional button-style script UI for a more prominent run action
 - Refreshes automatically when `package.json` files are created, changed, or deleted
 - Supports rerunning the last script from the view title
 
@@ -55,6 +56,11 @@ Use the title bar actions in the view to:
 
 - `true`: show a play icon next to each script
 - `false`: show scripts without the icon
+
+### `runSidebar.scriptUiMode`
+
+- `default`: keep the current compact script list
+- `button`: show scripts in a more action-oriented `Run <script>` layout
 
 ### `runSidebar.packageManager`
 

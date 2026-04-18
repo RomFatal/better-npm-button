@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 
 export type RunScope = "root" | "all";
+export type ScriptUiMode = "default" | "button";
 export type PackageManager = "auto" | "npm" | "pnpm" | "yarn" | "bun";
 export type TerminalMode = "reuse" | "new";
 
@@ -9,6 +10,7 @@ const SECTION = "runSidebar";
 export interface RunSidebarConfig {
   scope: RunScope;
   showPlayIcon: boolean;
+  scriptUiMode: ScriptUiMode;
   packageManager: PackageManager;
   terminalMode: TerminalMode;
   focusTerminal: boolean;
@@ -28,6 +30,7 @@ export function getConfig(): RunSidebarConfig {
     showPlayIcon: hasExplicitShowPlayIcon
       ? config.get<boolean>("showPlayIcon", true)
       : legacyItemStyle === "icon",
+    scriptUiMode: config.get<ScriptUiMode>("scriptUiMode", "default"),
     packageManager: config.get<PackageManager>("packageManager", "auto"),
     terminalMode: config.get<TerminalMode>("terminalMode", "new"),
     focusTerminal: config.get<boolean>("focusTerminal", true)
