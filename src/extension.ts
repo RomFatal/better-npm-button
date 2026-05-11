@@ -55,6 +55,18 @@ export function activate(context: vscode.ExtensionContext): void {
       treeProvider.refresh();
     })
   );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("runSidebar.movePinnedUp", (item: ScriptRunItem) => {
+      pinnedService.moveUp(item.scriptName, item.packageFile.packageJsonUri.fsPath);
+      treeProvider.refresh();
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("runSidebar.movePinnedDown", (item: ScriptRunItem) => {
+      pinnedService.moveDown(item.scriptName, item.packageFile.packageJsonUri.fsPath);
+      treeProvider.refresh();
+    })
+  );
 
   const packageWatcher = vscode.workspace.createFileSystemWatcher("**/package.json");
   context.subscriptions.push(

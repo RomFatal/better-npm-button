@@ -2,7 +2,7 @@
   "name": "better-npm-button",
   "displayName": "Better Npm Button",
   "description": "Run package.json scripts from the Activity Bar with a cleaner npm-style workflow.",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "publisher": "romfatal",
   "license": "MIT",
   "preview": false,
@@ -85,6 +85,16 @@
         "command": "runSidebar.unpinScript",
         "title": "Run: Unpin Script",
         "icon": "$(pinned)"
+      },
+      {
+        "command": "runSidebar.movePinnedUp",
+        "title": "Run: Move Pinned Script Up",
+        "icon": "$(arrow-up)"
+      },
+      {
+        "command": "runSidebar.movePinnedDown",
+        "title": "Run: Move Pinned Script Down",
+        "icon": "$(arrow-down)"
       }
     ],
     "viewsContainers": {
@@ -122,12 +132,22 @@
         {
           "command": "runSidebar.pinScript",
           "when": "view == runSidebar.scripts && viewItem == script",
-          "group": "inline"
+          "group": "inline@3"
         },
         {
           "command": "runSidebar.unpinScript",
-          "when": "view == runSidebar.scripts && viewItem == script.pinned",
-          "group": "inline"
+          "when": "view == runSidebar.scripts && (viewItem == script.pinned.first || viewItem == script.pinned.middle || viewItem == script.pinned.last || viewItem == script.pinned.only)",
+          "group": "inline@3"
+        },
+        {
+          "command": "runSidebar.movePinnedUp",
+          "when": "view == runSidebar.scripts && (viewItem == script.pinned.middle || viewItem == script.pinned.last)",
+          "group": "inline@1"
+        },
+        {
+          "command": "runSidebar.movePinnedDown",
+          "when": "view == runSidebar.scripts && (viewItem == script.pinned.first || viewItem == script.pinned.middle)",
+          "group": "inline@2"
         },
         {
           "command": "runSidebar.pinScript",
@@ -136,8 +156,18 @@
         },
         {
           "command": "runSidebar.unpinScript",
-          "when": "view == runSidebar.scripts && viewItem == script.pinned",
+          "when": "view == runSidebar.scripts && (viewItem == script.pinned.first || viewItem == script.pinned.middle || viewItem == script.pinned.last || viewItem == script.pinned.only)",
           "group": "script@1"
+        },
+        {
+          "command": "runSidebar.movePinnedUp",
+          "when": "view == runSidebar.scripts && (viewItem == script.pinned.middle || viewItem == script.pinned.last)",
+          "group": "script@2"
+        },
+        {
+          "command": "runSidebar.movePinnedDown",
+          "when": "view == runSidebar.scripts && (viewItem == script.pinned.first || viewItem == script.pinned.middle)",
+          "group": "script@3"
         }
       ]
     },

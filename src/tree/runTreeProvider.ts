@@ -97,8 +97,10 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
 
     if (pinned.length > 0) {
       items.push(new PinnedHeaderItem());
-      for (const name of pinned) {
-        items.push(new ScriptItem(packageFile, name, displayOptions, true));
+      for (let i = 0; i < pinned.length; i++) {
+        const position: PinnedPosition =
+          pinned.length === 1 ? "only" : i === 0 ? "first" : i === pinned.length - 1 ? "last" : "middle";
+        items.push(new ScriptItem(packageFile, pinned[i], displayOptions, position));
       }
     }
 
@@ -106,7 +108,7 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       items.push(
         isCommentScriptKey(name)
           ? new SectionHeaderItem(name)
-          : new ScriptItem(packageFile, name, displayOptions, false)
+          : new ScriptItem(packageFile, name, displayOptions, null)
       );
     }
 
@@ -119,16 +121,13 @@ function partitionByPinned(
   packageUri: string,
   pinnedService: PinnedScriptsService
 ): { pinned: string[]; rest: string[] } {
-  const pinned: string[] = [];
-  const rest: string[] = [];
-
-  for (const name of scriptNames) {
-    if (!isCommentScriptKey(name) && pinnedService.isPinned(name, packageUri)) {
-      pinned.push(name);
-    } else {
-      rest.push(name);
-    }
-  }
+  const scriptSet = new Set(scriptNames);
+  // preserve storage order for pinned so move-up/down is meaningful
+  const pinned = pinnedService
+    .pinnedNamesFor(packageUri)
+    .filter((name) => scriptSet.has(name) && !isCommentScriptKey(name));
+  const pinnedSet = new Set(pinned);
+  const rest = scriptNames.filter((name) => !pinnedSet.has(name));
 
   return { pinned, rest };
 }
@@ -168,6 +167,8 @@ function orderScriptNames(scriptNames: string[], sortOrder: SortOrder): string[]
   return scriptNames;
 }
 
+type PinnedPosition = "first" | "middle" | "last" | "only";
+
 export abstract class RunItem extends vscode.TreeItem {}
 
 class PackageItem extends RunItem {
@@ -190,7 +191,7 @@ class ScriptItem extends RunItem {
     packageFile: PackageScriptFile,
     scriptName: string,
     displayOptions: ScriptDisplayOptions,
-    pinned: boolean
+    pinnedPosition: PinnedPosition | null
   ) {
     super(buildScriptLabel(scriptName, displayOptions.uiMode), vscode.TreeItemCollapsibleState.None);
 
@@ -217,9 +218,9 @@ class ScriptItem extends RunItem {
         .filter((line): line is string => Boolean(line))
         .join("\n\n")
     );
-    this.contextValue = pinned ? "script.pinned" : "script";
+    this.contextValue = pinnedPosition ? `script.pinned.${pinnedPosition}` : "script";
 
-    if (pinned) {
+    if (pinnedPosition) {
       this.iconPath = new vscode.ThemeIcon(
         "pinned",
         displayOptions.uiMode === "button" ? new vscode.ThemeColor("terminal.ansiGreen") : undefined

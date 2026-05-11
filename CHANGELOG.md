@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.2.8
+
+- Added move-up / move-down arrows on pinned scripts so you can reorder the Pinned section
+- Arrows are position-aware: up arrow only shows when not already first, down arrow only when not already last
+- Order persists in workspace state alongside pin state
+
 ## 0.2.7
 
 - Added script pinning — hover a script to see the pin icon, click to float it to a **Pinned** section at the top of the list

@@ -32,6 +32,36 @@ export class PinnedScriptsService {
     );
   }
 
+  public moveUp(scriptName: string, packageJsonUri: string): void {
+    const entries = this.getAll();
+    const idx = entries.findIndex(
+      (e) => e.scriptName === scriptName && e.packageJsonUri === packageJsonUri
+    );
+    if (idx <= 0) {
+      return;
+    }
+    [entries[idx - 1], entries[idx]] = [entries[idx], entries[idx - 1]];
+    void this.state.update(STORAGE_KEY, entries);
+  }
+
+  public moveDown(scriptName: string, packageJsonUri: string): void {
+    const entries = this.getAll();
+    const idx = entries.findIndex(
+      (e) => e.scriptName === scriptName && e.packageJsonUri === packageJsonUri
+    );
+    if (idx === -1 || idx >= entries.length - 1) {
+      return;
+    }
+    [entries[idx], entries[idx + 1]] = [entries[idx + 1], entries[idx]];
+    void this.state.update(STORAGE_KEY, entries);
+  }
+
+  public pinnedNamesFor(packageJsonUri: string): string[] {
+    return this.getAll()
+      .filter((e) => e.packageJsonUri === packageJsonUri)
+      .map((e) => e.scriptName);
+  }
+
   public getAll(): PinnedEntry[] {
     return this.state.get<PinnedEntry[]>(STORAGE_KEY, []);
   }
