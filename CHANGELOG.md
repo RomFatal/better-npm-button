@@ -1,5 +1,13 @@
 # Change Log
 
+## 0.2.11
+
+- Added `runSidebar.accentColor` setting — global icon color for all scripts (green, blue, red, yellow, cyan, magenta, or default)
+- Added per-script color override — hover any script and click `$(symbol-color)` to pick an individual color
+- Individual color takes priority over the global setting (CSS-like specificity); pick "Default" in the picker to clear it
+- Individual colors persist in workspace state alongside pin state
+- Updated README with pinning docs, section header docs, and sort order docs
+
 ## 0.2.10
 
 - Fixed crash when clicking pin — context menu commands receive the tree item, not the command arguments object, so ScriptItem now exposes packageFile and scriptName as public fields

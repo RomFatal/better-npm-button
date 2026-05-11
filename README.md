@@ -26,6 +26,9 @@ VS Code already exposes npm scripts in a few places, but the experience is easy 
 - Includes an optional button-style script UI for a more prominent run action
 - Refreshes automatically when `package.json` files are created, changed, or deleted
 - Supports rerunning the last script from the view title
+- Renders `//` comment keys as non-runnable section headers, preserving your groupings
+- Configurable sort order — original, alphabetical, or alphabetical within each section
+- Pin any script to the top of the list with a hover icon; reorder pins via right-click
 
 ## Install
 
@@ -81,6 +84,32 @@ Use the title bar actions in the view to:
 - `true`: focus the terminal after starting a script
 - `false`: keep focus in the sidebar
 
+### `runSidebar.sortOrder`
+
+- `original`: show scripts in the order they appear in `package.json` (default)
+- `alphabetical`: sort all scripts A→Z
+- `alphabeticalGrouped`: sort scripts A→Z within each `//` section, keeping section order intact
+
+### Pinning scripts
+
+Hover any script to reveal a pin icon on the right. Click it to move the script to a **Pinned** section at the top of the list. Pinned scripts show a thumbtack icon and persist across restarts.
+
+To reorder pinned scripts, right-click a pinned script and choose **Move Up** or **Move Down**. To unpin, hover the script and click the thumbtack icon, or use the right-click menu.
+
+### Section headers
+
+Script keys that start with `//` are treated as non-runnable section headers. They display as label rows with no play button. Use them in your `package.json` to visually group related scripts:
+
+```json
+"scripts": {
+  "//--- Build ---": "",
+  "build": "tsc",
+  "build:watch": "tsc --watch",
+  "//--- Test ---": "",
+  "test": "vitest"
+}
+```
+
 ## Behavior Notes
 
 - In `root` mode, the terminal title uses the script name.
@@ -93,7 +122,6 @@ Use the title bar actions in the view to:
 - The extension only reads `package.json` scripts. It does not parse custom task runners or shell aliases.
 - `root` mode only uses the first workspace folder.
 - Untrusted workspaces and virtual workspaces are not supported.
-- There are no script filtering, pinning, or favorites features yet.
 
 ## Development
 

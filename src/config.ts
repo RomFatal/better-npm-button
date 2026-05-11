@@ -5,6 +5,7 @@ export type ScriptUiMode = "default" | "button";
 export type PackageManager = "auto" | "npm" | "pnpm" | "yarn" | "bun";
 export type TerminalMode = "reuse" | "new";
 export type SortOrder = "original" | "alphabetical" | "alphabeticalGrouped";
+export type ScriptColor = "default" | "green" | "blue" | "red" | "yellow" | "cyan" | "magenta";
 
 const SECTION = "runSidebar";
 
@@ -16,6 +17,7 @@ export interface RunSidebarConfig {
   terminalMode: TerminalMode;
   focusTerminal: boolean;
   sortOrder: SortOrder;
+  accentColor: ScriptColor;
 }
 
 export function getConfig(): RunSidebarConfig {
@@ -36,7 +38,8 @@ export function getConfig(): RunSidebarConfig {
     packageManager: config.get<PackageManager>("packageManager", "auto"),
     terminalMode: config.get<TerminalMode>("terminalMode", "new"),
     focusTerminal: config.get<boolean>("focusTerminal", true),
-    sortOrder: config.get<SortOrder>("sortOrder", "original")
+    sortOrder: config.get<SortOrder>("sortOrder", "original"),
+    accentColor: config.get<ScriptColor>("accentColor", "default")
   };
 }
 

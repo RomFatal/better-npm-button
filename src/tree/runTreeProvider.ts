@@ -1,7 +1,8 @@
 import * as vscode from "vscode";
-import { RunScope, ScriptUiMode, SortOrder, getConfig } from "../config";
+import { RunScope, ScriptColor, ScriptUiMode, SortOrder, getConfig } from "../config";
 import { PackageScriptFile } from "../services/packageDiscoveryService";
 import { PinnedScriptsService } from "../services/pinnedScriptsService";
+import { ScriptColorService } from "../services/scriptColorService";
 
 export interface ScriptRunItem {
   packageFile: PackageScriptFile;
@@ -12,6 +13,9 @@ interface ScriptDisplayOptions {
   showPlayIcon: boolean;
   uiMode: ScriptUiMode;
   sortOrder: SortOrder;
+  accentColor: ScriptColor;
+  colorService: ScriptColorService;
+  packageUri: string;
 }
 
 export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
@@ -21,7 +25,8 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
 
   public constructor(
     private readonly loadPackages: (scope: RunScope) => Promise<PackageScriptFile[]>,
-    private readonly pinnedService: PinnedScriptsService
+    private readonly pinnedService: PinnedScriptsService,
+    private readonly colorService: ScriptColorService
   ) {}
 
   public refresh(): void {
@@ -35,20 +40,24 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
   public async getChildren(element?: RunItem): Promise<RunItem[]> {
     const config = getConfig();
 
+    const baseOptions = {
+      showPlayIcon: config.showPlayIcon,
+      uiMode: config.scriptUiMode,
+      sortOrder: config.sortOrder,
+      accentColor: config.accentColor,
+      colorService: this.colorService,
+      packageUri: ""
+    };
+
     if (!element) {
       const packages = await this.loadPackages(config.scope);
-      return this.getRootItems(packages, config.scope, {
-        showPlayIcon: config.showPlayIcon,
-        uiMode: config.scriptUiMode,
-        sortOrder: config.sortOrder
-      });
+      return this.getRootItems(packages, config.scope, baseOptions);
     }
 
     if (element instanceof PackageItem) {
       return this.getScriptItems(element.packageFile, {
-        showPlayIcon: config.showPlayIcon,
-        uiMode: config.scriptUiMode,
-        sortOrder: config.sortOrder
+        ...baseOptions,
+        packageUri: element.packageFile.packageJsonUri.fsPath
       });
     }
 
@@ -70,7 +79,10 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
         return [new MessageItem("No root package.json found in the first workspace folder.")];
       }
 
-      return this.getScriptItems(packageFile, displayOptions, "No scripts found in the root package.json.");
+      return this.getScriptItems(packageFile, {
+        ...displayOptions,
+        packageUri: packageFile.packageJsonUri.fsPath
+      }, "No scripts found in the root package.json.");
     }
 
     if (packages.length === 0) {
@@ -134,6 +146,31 @@ function partitionByPinned(
 
 function isCommentScriptKey(scriptName: string): boolean {
   return scriptName.trimStart().startsWith("//");
+}
+
+const THEME_COLOR_MAP: Record<Exclude<ScriptColor, "default">, string> = {
+  green: "terminal.ansiGreen",
+  blue: "terminal.ansiBlue",
+  red: "terminal.ansiRed",
+  yellow: "terminal.ansiYellow",
+  cyan: "terminal.ansiCyan",
+  magenta: "terminal.ansiMagenta"
+};
+
+function resolveIconColor(
+  scriptName: string,
+  displayOptions: ScriptDisplayOptions
+): vscode.ThemeColor | undefined {
+  const individual = displayOptions.colorService.getColor(scriptName, displayOptions.packageUri);
+  const effective = individual ?? displayOptions.accentColor;
+
+  if (effective === "default") {
+    return displayOptions.uiMode === "button"
+      ? new vscode.ThemeColor("terminal.ansiGreen")
+      : undefined;
+  }
+
+  return new vscode.ThemeColor(THEME_COLOR_MAP[effective]);
 }
 
 function orderScriptNames(scriptNames: string[], sortOrder: SortOrder): string[] {
@@ -225,16 +262,12 @@ export class ScriptItem extends RunItem {
     );
     this.contextValue = pinnedPosition ? `script.pinned.${pinnedPosition}` : "script";
 
+    const color = resolveIconColor(scriptName, displayOptions);
+
     if (pinnedPosition) {
-      this.iconPath = new vscode.ThemeIcon(
-        "pinned",
-        displayOptions.uiMode === "button" ? new vscode.ThemeColor("terminal.ansiGreen") : undefined
-      );
+      this.iconPath = new vscode.ThemeIcon("pinned", color);
     } else if (displayOptions.showPlayIcon) {
-      this.iconPath =
-        displayOptions.uiMode === "button"
-          ? new vscode.ThemeIcon("play-circle", new vscode.ThemeColor("terminal.ansiGreen"))
-          : new vscode.ThemeIcon("play-circle");
+      this.iconPath = new vscode.ThemeIcon("play-circle", color);
     }
   }
 }

@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
-import { getConfig, isRunSidebarConfigChange } from "./config";
+import { ScriptColor, getConfig, isRunSidebarConfigChange } from "./config";
 import { PackageDiscoveryService } from "./services/packageDiscoveryService";
 import { PackageManagerService } from "./services/packageManagerService";
 import { PinnedScriptsService } from "./services/pinnedScriptsService";
+import { ScriptColorService } from "./services/scriptColorService";
 import { ScriptRunRequest, TerminalService } from "./services/terminalService";
 import { RunTreeProvider, ScriptItem, ScriptRunItem } from "./tree/runTreeProvider";
 
@@ -10,10 +11,12 @@ export function activate(context: vscode.ExtensionContext): void {
   const packageDiscoveryService = new PackageDiscoveryService();
   const packageManagerService = new PackageManagerService();
   const pinnedService = new PinnedScriptsService(context.workspaceState);
+  const colorService = new ScriptColorService(context.workspaceState);
   const terminalService = new TerminalService();
   const treeProvider = new RunTreeProvider(
     (scope) => packageDiscoveryService.listPackages(scope),
-    pinnedService
+    pinnedService,
+    colorService
   );
 
   context.subscriptions.push(terminalService);
@@ -64,6 +67,24 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand("runSidebar.movePinnedDown", (item: ScriptItem) => {
       pinnedService.moveDown(item.scriptName, item.packageFile.packageJsonUri.fsPath);
+      treeProvider.refresh();
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("runSidebar.setScriptColor", async (item: ScriptItem) => {
+      const packageUri = item.packageFile.packageJsonUri.fsPath;
+      const current = colorService.getColor(item.scriptName, packageUri);
+
+      const picked = await vscode.window.showQuickPick(buildColorPicks(current), {
+        title: `Icon color for "${item.scriptName}"`,
+        placeHolder: "Pick a color — individual overrides the global setting"
+      });
+
+      if (!picked) {
+        return;
+      }
+
+      colorService.setColor(item.scriptName, packageUri, picked.color);
       treeProvider.refresh();
     })
   );
@@ -120,6 +141,33 @@ function buildTerminalTitle(item: ScriptRunItem): string {
   }
 
   return `${getPackageLabel(item)}: ${item.scriptName}`;
+}
+
+interface ColorQuickPickItem extends vscode.QuickPickItem {
+  color: ScriptColor;
+}
+
+function buildColorPicks(current: ScriptColor | undefined): ColorQuickPickItem[] {
+  const entries: Array<{ color: ScriptColor; label: string }> = [
+    { color: "green", label: "$(circle-filled) Green" },
+    { color: "blue", label: "$(circle-filled) Blue" },
+    { color: "red", label: "$(circle-filled) Red" },
+    { color: "yellow", label: "$(circle-filled) Yellow" },
+    { color: "cyan", label: "$(circle-filled) Cyan" },
+    { color: "magenta", label: "$(circle-filled) Magenta" },
+    { color: "default", label: "$(circle-outline) Default" }
+  ];
+
+  return entries.map(({ color, label }) => ({
+    color,
+    label,
+    description:
+      color === current
+        ? "current"
+        : color === "default"
+          ? "clear individual override — use global setting"
+          : undefined
+  }));
 }
 
 function getPackageLabel(item: ScriptRunItem): string {
