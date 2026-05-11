@@ -2,7 +2,7 @@
   "name": "better-npm-button",
   "displayName": "Better Npm Button",
   "description": "Run package.json scripts from the Activity Bar with a cleaner npm-style workflow.",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publisher": "romfatal",
   "license": "MIT",
   "preview": false,
@@ -75,6 +75,16 @@
       {
         "command": "runSidebar.runScript",
         "title": "Run: Execute Script"
+      },
+      {
+        "command": "runSidebar.pinScript",
+        "title": "Run: Pin Script",
+        "icon": "$(pin)"
+      },
+      {
+        "command": "runSidebar.unpinScript",
+        "title": "Run: Unpin Script",
+        "icon": "$(pinned)"
       }
     ],
     "viewsContainers": {
@@ -106,6 +116,28 @@
           "command": "runSidebar.rerunLast",
           "when": "view == runSidebar.scripts",
           "group": "navigation"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "runSidebar.pinScript",
+          "when": "view == runSidebar.scripts && viewItem == script",
+          "group": "inline"
+        },
+        {
+          "command": "runSidebar.unpinScript",
+          "when": "view == runSidebar.scripts && viewItem == script.pinned",
+          "group": "inline"
+        },
+        {
+          "command": "runSidebar.pinScript",
+          "when": "view == runSidebar.scripts && viewItem == script",
+          "group": "script@1"
+        },
+        {
+          "command": "runSidebar.unpinScript",
+          "when": "view == runSidebar.scripts && viewItem == script.pinned",
+          "group": "script@1"
         }
       ]
     },

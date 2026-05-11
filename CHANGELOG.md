@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.2.7
+
+- Added script pinning — hover a script to see the pin icon, click to float it to a **Pinned** section at the top of the list
+- Pinned scripts persist across restarts via workspace state
+- Pinned scripts show a `$(pinned)` icon and can be unpinned via hover icon or right-click menu
+- Pin / Unpin also available in the right-click context menu (not only on hover)
+
 ## 0.2.6
 
 - Render `//` script keys as non-runnable section headers instead of clickable scripts

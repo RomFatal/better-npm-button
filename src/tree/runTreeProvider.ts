@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { RunScope, ScriptUiMode, SortOrder, getConfig } from "../config";
 import { PackageScriptFile } from "../services/packageDiscoveryService";
+import { PinnedScriptsService } from "../services/pinnedScriptsService";
 
 export interface ScriptRunItem {
   packageFile: PackageScriptFile;
@@ -19,7 +20,8 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
   public readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
 
   public constructor(
-    private readonly loadPackages: (scope: RunScope) => Promise<PackageScriptFile[]>
+    private readonly loadPackages: (scope: RunScope) => Promise<PackageScriptFile[]>,
+    private readonly pinnedService: PinnedScriptsService
   ) {}
 
   public refresh(): void {
@@ -83,17 +85,52 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
     displayOptions: ScriptDisplayOptions,
     emptyMessage = "No scripts found."
   ): RunItem[] {
-    const scriptNames = orderScriptNames(Object.keys(packageFile.scripts), displayOptions.sortOrder);
-    if (scriptNames.length === 0) {
+    const allNames = orderScriptNames(Object.keys(packageFile.scripts), displayOptions.sortOrder);
+    if (allNames.length === 0) {
       return [new MessageItem(emptyMessage)];
     }
 
-    return scriptNames.map((scriptName) =>
-      isCommentScriptKey(scriptName)
-        ? new SectionHeaderItem(scriptName)
-        : new ScriptItem(packageFile, scriptName, displayOptions)
-    );
+    const packageUri = packageFile.packageJsonUri.fsPath;
+    const { pinned, rest } = partitionByPinned(allNames, packageUri, this.pinnedService);
+
+    const items: RunItem[] = [];
+
+    if (pinned.length > 0) {
+      items.push(new PinnedHeaderItem());
+      for (const name of pinned) {
+        items.push(new ScriptItem(packageFile, name, displayOptions, true));
+      }
+    }
+
+    for (const name of rest) {
+      items.push(
+        isCommentScriptKey(name)
+          ? new SectionHeaderItem(name)
+          : new ScriptItem(packageFile, name, displayOptions, false)
+      );
+    }
+
+    return items;
   }
+}
+
+function partitionByPinned(
+  scriptNames: string[],
+  packageUri: string,
+  pinnedService: PinnedScriptsService
+): { pinned: string[]; rest: string[] } {
+  const pinned: string[] = [];
+  const rest: string[] = [];
+
+  for (const name of scriptNames) {
+    if (!isCommentScriptKey(name) && pinnedService.isPinned(name, packageUri)) {
+      pinned.push(name);
+    } else {
+      rest.push(name);
+    }
+  }
+
+  return { pinned, rest };
 }
 
 function isCommentScriptKey(scriptName: string): boolean {
@@ -152,7 +189,8 @@ class ScriptItem extends RunItem {
   public constructor(
     packageFile: PackageScriptFile,
     scriptName: string,
-    displayOptions: ScriptDisplayOptions
+    displayOptions: ScriptDisplayOptions,
+    pinned: boolean
   ) {
     super(buildScriptLabel(scriptName, displayOptions.uiMode), vscode.TreeItemCollapsibleState.None);
 
@@ -179,9 +217,14 @@ class ScriptItem extends RunItem {
         .filter((line): line is string => Boolean(line))
         .join("\n\n")
     );
-    this.contextValue = "script";
+    this.contextValue = pinned ? "script.pinned" : "script";
 
-    if (displayOptions.showPlayIcon) {
+    if (pinned) {
+      this.iconPath = new vscode.ThemeIcon(
+        "pinned",
+        displayOptions.uiMode === "button" ? new vscode.ThemeColor("terminal.ansiGreen") : undefined
+      );
+    } else if (displayOptions.showPlayIcon) {
       this.iconPath =
         displayOptions.uiMode === "button"
           ? new vscode.ThemeIcon("play-circle", new vscode.ThemeColor("terminal.ansiGreen"))
@@ -195,6 +238,15 @@ class MessageItem extends RunItem {
     super(label, vscode.TreeItemCollapsibleState.None);
 
     this.iconPath = new vscode.ThemeIcon("info");
+  }
+}
+
+class PinnedHeaderItem extends RunItem {
+  public constructor() {
+    super("Pinned", vscode.TreeItemCollapsibleState.None);
+
+    this.contextValue = "pinnedHeader";
+    this.iconPath = new vscode.ThemeIcon("pinned");
   }
 }
 

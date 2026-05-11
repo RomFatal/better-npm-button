@@ -2,14 +2,19 @@ import * as vscode from "vscode";
 import { getConfig, isRunSidebarConfigChange } from "./config";
 import { PackageDiscoveryService } from "./services/packageDiscoveryService";
 import { PackageManagerService } from "./services/packageManagerService";
+import { PinnedScriptsService } from "./services/pinnedScriptsService";
 import { ScriptRunRequest, TerminalService } from "./services/terminalService";
 import { RunTreeProvider, ScriptRunItem } from "./tree/runTreeProvider";
 
 export function activate(context: vscode.ExtensionContext): void {
   const packageDiscoveryService = new PackageDiscoveryService();
   const packageManagerService = new PackageManagerService();
+  const pinnedService = new PinnedScriptsService(context.workspaceState);
   const terminalService = new TerminalService();
-  const treeProvider = new RunTreeProvider((scope) => packageDiscoveryService.listPackages(scope));
+  const treeProvider = new RunTreeProvider(
+    (scope) => packageDiscoveryService.listPackages(scope),
+    pinnedService
+  );
 
   context.subscriptions.push(terminalService);
   context.subscriptions.push(
@@ -36,6 +41,18 @@ export function activate(context: vscode.ExtensionContext): void {
       }
 
       terminalService.run(request);
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("runSidebar.pinScript", (item: ScriptRunItem) => {
+      pinnedService.pin(item.scriptName, item.packageFile.packageJsonUri.fsPath);
+      treeProvider.refresh();
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("runSidebar.unpinScript", (item: ScriptRunItem) => {
+      pinnedService.unpin(item.scriptName, item.packageFile.packageJsonUri.fsPath);
+      treeProvider.refresh();
     })
   );
 
