@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.2.6
+
+- Render `//` script keys as non-runnable section headers instead of clickable scripts
+- Preserve `package.json` insertion order by default instead of sorting alphabetically
+- Added a `runSidebar.sortOrder` setting with `original`, `alphabetical`, and `alphabeticalGrouped` modes
+
 ## 0.2.4
 
 - Added a README screenshot preview for the `Run` view

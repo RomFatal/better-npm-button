@@ -2,7 +2,7 @@
   "name": "better-npm-button",
   "displayName": "Better Npm Button",
   "description": "Run package.json scripts from the Activity Bar with a cleaner npm-style workflow.",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "publisher": "romfatal",
   "license": "MIT",
   "preview": false,
@@ -160,6 +160,21 @@
           "type": "boolean",
           "default": true,
           "description": "Focus the integrated terminal after starting a script."
+        },
+        "runSidebar.sortOrder": {
+          "type": "string",
+          "enum": [
+            "original",
+            "alphabetical",
+            "alphabeticalGrouped"
+          ],
+          "enumDescriptions": [
+            "Show scripts in the order they appear in package.json (default).",
+            "Sort all scripts alphabetically by name.",
+            "Sort scripts alphabetically within each // comment section, preserving section order."
+          ],
+          "default": "original",
+          "description": "Choose how scripts are ordered in the sidebar. Keys that start with // are treated as section headers."
         }
       }
     }

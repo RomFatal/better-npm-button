@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { RunScope, ScriptUiMode, getConfig } from "../config";
+import { RunScope, ScriptUiMode, SortOrder, getConfig } from "../config";
 import { PackageScriptFile } from "../services/packageDiscoveryService";
 
 export interface ScriptRunItem {
@@ -10,6 +10,7 @@ export interface ScriptRunItem {
 interface ScriptDisplayOptions {
   showPlayIcon: boolean;
   uiMode: ScriptUiMode;
+  sortOrder: SortOrder;
 }
 
 export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
@@ -36,14 +37,16 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       const packages = await this.loadPackages(config.scope);
       return this.getRootItems(packages, config.scope, {
         showPlayIcon: config.showPlayIcon,
-        uiMode: config.scriptUiMode
+        uiMode: config.scriptUiMode,
+        sortOrder: config.sortOrder
       });
     }
 
     if (element instanceof PackageItem) {
       return this.getScriptItems(element.packageFile, {
         showPlayIcon: config.showPlayIcon,
-        uiMode: config.scriptUiMode
+        uiMode: config.scriptUiMode,
+        sortOrder: config.sortOrder
       });
     }
 
@@ -80,13 +83,52 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
     displayOptions: ScriptDisplayOptions,
     emptyMessage = "No scripts found."
   ): RunItem[] {
-    const scriptNames = Object.keys(packageFile.scripts).sort((left, right) => left.localeCompare(right));
+    const scriptNames = orderScriptNames(Object.keys(packageFile.scripts), displayOptions.sortOrder);
     if (scriptNames.length === 0) {
       return [new MessageItem(emptyMessage)];
     }
 
-    return scriptNames.map((scriptName) => new ScriptItem(packageFile, scriptName, displayOptions));
+    return scriptNames.map((scriptName) =>
+      isCommentScriptKey(scriptName)
+        ? new SectionHeaderItem(scriptName)
+        : new ScriptItem(packageFile, scriptName, displayOptions)
+    );
   }
+}
+
+function isCommentScriptKey(scriptName: string): boolean {
+  return scriptName.trimStart().startsWith("//");
+}
+
+function orderScriptNames(scriptNames: string[], sortOrder: SortOrder): string[] {
+  if (sortOrder === "alphabetical") {
+    return [...scriptNames].sort((left, right) => left.localeCompare(right));
+  }
+
+  if (sortOrder === "alphabeticalGrouped") {
+    const ordered: string[] = [];
+    let buffer: string[] = [];
+
+    const flush = (): void => {
+      buffer.sort((left, right) => left.localeCompare(right));
+      ordered.push(...buffer);
+      buffer = [];
+    };
+
+    for (const name of scriptNames) {
+      if (isCommentScriptKey(name)) {
+        flush();
+        ordered.push(name);
+        continue;
+      }
+      buffer.push(name);
+    }
+    flush();
+
+    return ordered;
+  }
+
+  return scriptNames;
 }
 
 export abstract class RunItem extends vscode.TreeItem {}
@@ -154,6 +196,22 @@ class MessageItem extends RunItem {
 
     this.iconPath = new vscode.ThemeIcon("info");
   }
+}
+
+class SectionHeaderItem extends RunItem {
+  public constructor(rawKey: string) {
+    super(formatSectionLabel(rawKey), vscode.TreeItemCollapsibleState.None);
+
+    this.contextValue = "sectionHeader";
+    this.tooltip = rawKey;
+    this.description = "";
+  }
+}
+
+function formatSectionLabel(rawKey: string): string {
+  const trimmed = rawKey.trim().replace(/^\/+/, "");
+  const stripped = trimmed.replace(/^[=\-\s]+|[=\-\s]+$/g, "").trim();
+  return stripped.length > 0 ? stripped : rawKey;
 }
 
 function buildScriptLabel(scriptName: string, uiMode: ScriptUiMode): string {

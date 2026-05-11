@@ -4,6 +4,7 @@ export type RunScope = "root" | "all";
 export type ScriptUiMode = "default" | "button";
 export type PackageManager = "auto" | "npm" | "pnpm" | "yarn" | "bun";
 export type TerminalMode = "reuse" | "new";
+export type SortOrder = "original" | "alphabetical" | "alphabeticalGrouped";
 
 const SECTION = "runSidebar";
 
@@ -14,6 +15,7 @@ export interface RunSidebarConfig {
   packageManager: PackageManager;
   terminalMode: TerminalMode;
   focusTerminal: boolean;
+  sortOrder: SortOrder;
 }
 
 export function getConfig(): RunSidebarConfig {
@@ -33,7 +35,8 @@ export function getConfig(): RunSidebarConfig {
     scriptUiMode: config.get<ScriptUiMode>("scriptUiMode", "default"),
     packageManager: config.get<PackageManager>("packageManager", "auto"),
     terminalMode: config.get<TerminalMode>("terminalMode", "new"),
-    focusTerminal: config.get<boolean>("focusTerminal", true)
+    focusTerminal: config.get<boolean>("focusTerminal", true),
+    sortOrder: config.get<SortOrder>("sortOrder", "original")
   };
 }
 
