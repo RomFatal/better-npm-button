@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.2.9
+
+- Move-up / move-down arrows removed from inline hover area — now accessible via right-click only
+- Hover on a pinned script shows only the unpin icon (cleaner row)
+
 ## 0.2.8
 
 - Added move-up / move-down arrows on pinned scripts so you can reorder the Pinned section
