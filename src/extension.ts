@@ -4,7 +4,7 @@ import { PackageDiscoveryService } from "./services/packageDiscoveryService";
 import { PackageManagerService } from "./services/packageManagerService";
 import { PinnedScriptsService } from "./services/pinnedScriptsService";
 import { ScriptRunRequest, TerminalService } from "./services/terminalService";
-import { RunTreeProvider, ScriptRunItem } from "./tree/runTreeProvider";
+import { RunTreeProvider, ScriptItem, ScriptRunItem } from "./tree/runTreeProvider";
 
 export function activate(context: vscode.ExtensionContext): void {
   const packageDiscoveryService = new PackageDiscoveryService();
@@ -44,25 +44,25 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand("runSidebar.pinScript", (item: ScriptRunItem) => {
+    vscode.commands.registerCommand("runSidebar.pinScript", (item: ScriptItem) => {
       pinnedService.pin(item.scriptName, item.packageFile.packageJsonUri.fsPath);
       treeProvider.refresh();
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand("runSidebar.unpinScript", (item: ScriptRunItem) => {
+    vscode.commands.registerCommand("runSidebar.unpinScript", (item: ScriptItem) => {
       pinnedService.unpin(item.scriptName, item.packageFile.packageJsonUri.fsPath);
       treeProvider.refresh();
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand("runSidebar.movePinnedUp", (item: ScriptRunItem) => {
+    vscode.commands.registerCommand("runSidebar.movePinnedUp", (item: ScriptItem) => {
       pinnedService.moveUp(item.scriptName, item.packageFile.packageJsonUri.fsPath);
       treeProvider.refresh();
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand("runSidebar.movePinnedDown", (item: ScriptRunItem) => {
+    vscode.commands.registerCommand("runSidebar.movePinnedDown", (item: ScriptItem) => {
       pinnedService.moveDown(item.scriptName, item.packageFile.packageJsonUri.fsPath);
       treeProvider.refresh();
     })

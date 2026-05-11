@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.2.10
+
+- Fixed crash when clicking pin — context menu commands receive the tree item, not the command arguments object, so ScriptItem now exposes packageFile and scriptName as public fields
+
 ## 0.2.9
 
 - Move-up / move-down arrows removed from inline hover area — now accessible via right-click only

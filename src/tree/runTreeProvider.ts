@@ -186,7 +186,10 @@ class PackageItem extends RunItem {
   }
 }
 
-class ScriptItem extends RunItem {
+export class ScriptItem extends RunItem {
+  public readonly packageFile: PackageScriptFile;
+  public readonly scriptName: string;
+
   public constructor(
     packageFile: PackageScriptFile,
     scriptName: string,
@@ -194,6 +197,8 @@ class ScriptItem extends RunItem {
     pinnedPosition: PinnedPosition | null
   ) {
     super(buildScriptLabel(scriptName, displayOptions.uiMode), vscode.TreeItemCollapsibleState.None);
+    this.packageFile = packageFile;
+    this.scriptName = scriptName;
 
     const scriptValue = packageFile.scripts[scriptName];
 
