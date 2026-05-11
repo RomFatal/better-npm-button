@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.2.12
+
+- Script label text is now colored to match the icon — individual and global colors apply to both
+
 ## 0.2.11
 
 - Added `runSidebar.accentColor` setting — global icon color for all scripts (green, blue, red, yellow, cyan, magenta, or default)

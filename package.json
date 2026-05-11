@@ -2,7 +2,7 @@
   "name": "better-npm-button",
   "displayName": "Better Npm Button",
   "description": "Run package.json scripts from the Activity Bar. Supports pinning, section headers, sort order, and multi-package workspaces.",
-  "version": "0.2.11",
+  "version": "0.2.12",
   "publisher": "romfatal",
   "license": "MIT",
   "preview": false,

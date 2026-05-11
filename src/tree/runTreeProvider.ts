@@ -148,7 +148,9 @@ function isCommentScriptKey(scriptName: string): boolean {
   return scriptName.trimStart().startsWith("//");
 }
 
-const THEME_COLOR_MAP: Record<Exclude<ScriptColor, "default">, string> = {
+export const DECORATION_URI_SCHEME = "runsidebar-color";
+
+export const THEME_COLOR_MAP: Record<Exclude<ScriptColor, "default">, string> = {
   green: "terminal.ansiGreen",
   blue: "terminal.ansiBlue",
   red: "terminal.ansiRed",
@@ -157,20 +159,33 @@ const THEME_COLOR_MAP: Record<Exclude<ScriptColor, "default">, string> = {
   magenta: "terminal.ansiMagenta"
 };
 
-function resolveIconColor(
+function resolveColorName(
   scriptName: string,
   displayOptions: ScriptDisplayOptions
-): vscode.ThemeColor | undefined {
+): Exclude<ScriptColor, "default"> | null {
   const individual = displayOptions.colorService.getColor(scriptName, displayOptions.packageUri);
   const effective = individual ?? displayOptions.accentColor;
 
-  if (effective === "default") {
-    return displayOptions.uiMode === "button"
-      ? new vscode.ThemeColor("terminal.ansiGreen")
-      : undefined;
+  if (effective !== "default") {
+    return effective;
   }
 
-  return new vscode.ThemeColor(THEME_COLOR_MAP[effective]);
+  return displayOptions.uiMode === "button" ? "green" : null;
+}
+
+export class ScriptDecorationProvider implements vscode.FileDecorationProvider {
+  public provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
+    if (uri.scheme !== DECORATION_URI_SCHEME) {
+      return undefined;
+    }
+
+    const themeColorId = THEME_COLOR_MAP[uri.authority as Exclude<ScriptColor, "default">];
+    if (!themeColorId) {
+      return undefined;
+    }
+
+    return { color: new vscode.ThemeColor(themeColorId) };
+  }
 }
 
 function orderScriptNames(scriptNames: string[], sortOrder: SortOrder): string[] {
@@ -262,12 +277,17 @@ export class ScriptItem extends RunItem {
     );
     this.contextValue = pinnedPosition ? `script.pinned.${pinnedPosition}` : "script";
 
-    const color = resolveIconColor(scriptName, displayOptions);
+    const colorName = resolveColorName(scriptName, displayOptions);
+    const themeColor = colorName ? new vscode.ThemeColor(THEME_COLOR_MAP[colorName]) : undefined;
+
+    if (colorName) {
+      this.resourceUri = vscode.Uri.parse(`${DECORATION_URI_SCHEME}://${colorName}`);
+    }
 
     if (pinnedPosition) {
-      this.iconPath = new vscode.ThemeIcon("pinned", color);
+      this.iconPath = new vscode.ThemeIcon("pinned", themeColor);
     } else if (displayOptions.showPlayIcon) {
-      this.iconPath = new vscode.ThemeIcon("play-circle", color);
+      this.iconPath = new vscode.ThemeIcon("play-circle", themeColor);
     }
   }
 }
