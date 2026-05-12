@@ -61,6 +61,10 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       });
     }
 
+    if (element instanceof SectionGroupItem) {
+      return element.sectionChildren;
+    }
+
     return [];
   }
 
@@ -116,12 +120,20 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       }
     }
 
+    let currentGroup: SectionGroupItem | null = null;
+
     for (const name of rest) {
-      items.push(
-        isCommentScriptKey(name)
-          ? new SectionHeaderItem(name)
-          : new ScriptItem(packageFile, name, displayOptions, null)
-      );
+      if (isCommentScriptKey(name)) {
+        currentGroup = new SectionGroupItem(name);
+        items.push(currentGroup);
+      } else {
+        const scriptItem = new ScriptItem(packageFile, name, displayOptions, null);
+        if (currentGroup) {
+          currentGroup.sectionChildren.push(scriptItem);
+        } else {
+          items.push(scriptItem);
+        }
+      }
     }
 
     return items;
@@ -148,7 +160,7 @@ function isCommentScriptKey(scriptName: string): boolean {
   return scriptName.trimStart().startsWith("//");
 }
 
-export const DECORATION_URI_SCHEME = "runsidebar-color";
+const DECORATION_URI_SCHEME = "runsidebar-color";
 
 export const THEME_COLOR_MAP: Record<Exclude<ScriptColor, "default">, string> = {
   green: "terminal.ansiGreen",
@@ -173,20 +185,6 @@ function resolveColorName(
   return displayOptions.uiMode === "button" ? "green" : null;
 }
 
-export class ScriptDecorationProvider implements vscode.FileDecorationProvider {
-  public provideFileDecoration(uri: vscode.Uri): vscode.FileDecoration | undefined {
-    if (uri.scheme !== DECORATION_URI_SCHEME) {
-      return undefined;
-    }
-
-    const themeColorId = THEME_COLOR_MAP[uri.authority as Exclude<ScriptColor, "default">];
-    if (!themeColorId) {
-      return undefined;
-    }
-
-    return { color: new vscode.ThemeColor(themeColorId) };
-  }
-}
 
 function orderScriptNames(scriptNames: string[], sortOrder: SortOrder): string[] {
   if (sortOrder === "alphabetical") {
@@ -280,10 +278,6 @@ export class ScriptItem extends RunItem {
     const colorName = resolveColorName(scriptName, displayOptions);
     const themeColor = colorName ? new vscode.ThemeColor(THEME_COLOR_MAP[colorName]) : undefined;
 
-    if (colorName) {
-      this.resourceUri = vscode.Uri.parse(`${DECORATION_URI_SCHEME}://${colorName}`);
-    }
-
     if (pinnedPosition) {
       this.iconPath = new vscode.ThemeIcon("pinned", themeColor);
     } else if (displayOptions.showPlayIcon) {
@@ -309,13 +303,14 @@ class PinnedHeaderItem extends RunItem {
   }
 }
 
-class SectionHeaderItem extends RunItem {
-  public constructor(rawKey: string) {
-    super(formatSectionLabel(rawKey), vscode.TreeItemCollapsibleState.None);
+class SectionGroupItem extends RunItem {
+  public readonly sectionChildren: ScriptItem[] = [];
 
-    this.contextValue = "sectionHeader";
+  public constructor(rawKey: string) {
+    super(formatSectionLabel(rawKey), vscode.TreeItemCollapsibleState.Expanded);
+
+    this.contextValue = "sectionGroup";
     this.tooltip = rawKey;
-    this.description = "";
   }
 }
 

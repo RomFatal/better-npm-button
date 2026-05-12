@@ -1,5 +1,15 @@
 # Change Log
 
+## 0.2.14
+
+- Removed label text coloring — color applies to the icon only, so selected/hovered items stay white as expected
+
+## 0.2.13
+
+- Section headers (// comment keys) are now collapsible groups — click the arrow to collapse or expand all scripts in a section
+- Scripts that belong to a section become children of it; scripts before the first section remain at the top level
+- Expanded by default; VS Code remembers collapse state per section
+
 ## 0.2.12
 
 - Script label text is now colored to match the icon — individual and global colors apply to both

@@ -5,7 +5,7 @@ import { PackageManagerService } from "./services/packageManagerService";
 import { PinnedScriptsService } from "./services/pinnedScriptsService";
 import { ScriptColorService } from "./services/scriptColorService";
 import { ScriptRunRequest, TerminalService } from "./services/terminalService";
-import { RunTreeProvider, ScriptDecorationProvider, ScriptItem, ScriptRunItem } from "./tree/runTreeProvider";
+import { RunTreeProvider, ScriptItem, ScriptRunItem } from "./tree/runTreeProvider";
 
 export function activate(context: vscode.ExtensionContext): void {
   const packageDiscoveryService = new PackageDiscoveryService();
@@ -20,7 +20,6 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(terminalService);
-  context.subscriptions.push(vscode.window.registerFileDecorationProvider(new ScriptDecorationProvider()));
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("runSidebar.scripts", treeProvider)
   );
