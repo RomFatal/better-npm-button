@@ -1,9 +1,12 @@
 import * as vscode from "vscode";
-import { ScriptColor, getConfig, isRunSidebarConfigChange, setScriptDescription } from "./config";
+import { ScriptColor, getConfig, isRunSidebarConfigChange, setGroupBy, setScriptDescription } from "./config";
 import { PackageDiscoveryService } from "./services/packageDiscoveryService";
 import { PackageManagerService } from "./services/packageManagerService";
 import { PinnedScriptsService } from "./services/pinnedScriptsService";
 import { ScriptColorService } from "./services/scriptColorService";
+import { locatePackageJson } from "./services/packageJsonLocator";
+import { RunStateService } from "./services/runStateService";
+import { ScriptsInfoValidator, isPackageJson } from "./services/scriptsInfoValidator";
 import { ScriptRunRequest, TerminalService } from "./services/terminalService";
 import { RunTreeProvider, ScriptItem, ScriptRunItem } from "./tree/runTreeProvider";
 
@@ -12,14 +15,35 @@ export function activate(context: vscode.ExtensionContext): void {
   const packageManagerService = new PackageManagerService();
   const pinnedService = new PinnedScriptsService(context.workspaceState);
   const colorService = new ScriptColorService(context.workspaceState);
-  const terminalService = new TerminalService();
+  const runState = new RunStateService();
+  const terminalService = new TerminalService(runState);
+  const validator = new ScriptsInfoValidator();
   const treeProvider = new RunTreeProvider(
     (scope) => packageDiscoveryService.listPackages(scope),
     pinnedService,
-    colorService
+    colorService,
+    runState
   );
 
-  context.subscriptions.push(terminalService);
+  // The last script run from the sidebar, so Rerun Last goes through the
+  // same confirm step with the same arguments.
+  let lastRun: { item: ScriptRunItem; args?: string } | undefined;
+
+  const runItem = async (item: ScriptRunItem, args?: string): Promise<void> => {
+    if (!(await confirmIfAsked(item))) {
+      return;
+    }
+    const request = await buildRunRequest(item, packageManagerService);
+    if (!request) {
+      void vscode.window.showWarningMessage("Could not resolve the selected script.");
+      return;
+    }
+    lastRun = { item, args };
+    await terminalService.run({ ...request, args });
+  };
+
+  context.subscriptions.push(terminalService, runState, validator);
+  context.subscriptions.push(runState.onDidChange(() => treeProvider.refresh()));
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("runSidebar.scripts", treeProvider)
   );
@@ -29,21 +53,45 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand("runSidebar.rerunLast", () => {
-      if (!terminalService.rerunLast()) {
+    vscode.commands.registerCommand("runSidebar.rerunLast", async () => {
+      if (!lastRun) {
         void vscode.window.showInformationMessage("No script has been run yet.");
+        return;
       }
+      await runItem(lastRun.item, lastRun.args);
     })
   );
   context.subscriptions.push(
-    vscode.commands.registerCommand("runSidebar.runScript", async (item: ScriptRunItem) => {
-      const request = await buildRunRequest(item, packageManagerService);
-      if (!request) {
-        void vscode.window.showWarningMessage("Could not resolve the selected script.");
+    vscode.commands.registerCommand("runSidebar.runScript", (item: ScriptRunItem) => runItem(item))
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("runSidebar.runWithArgs", async (item: ScriptItem) => {
+      const memoryKey = `runSidebar.args:${item.packageFile.packageJsonUri.fsPath}:${item.scriptName}`;
+      const args = await vscode.window.showInputBox({
+        title: `Run "${item.scriptName}" with arguments`,
+        prompt: "Passed to the script as typed, e.g. --watch or a test file name",
+        placeHolder: "--watch",
+        value: context.workspaceState.get<string>(memoryKey, "")
+      });
+      if (args === undefined) {
         return;
       }
-
-      terminalService.run(request);
+      await context.workspaceState.update(memoryKey, args);
+      await runItem({ packageFile: item.packageFile, scriptName: item.scriptName }, args);
+    })
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("runSidebar.openInPackageJson", async (item: ScriptItem) => {
+      const document = await vscode.workspace.openTextDocument(item.packageFile.packageJsonUri);
+      const key = locatePackageJson(document.getText())
+        .objects.get("scripts")
+        ?.keys.find((entry) => entry.name === item.scriptName);
+      const editor = await vscode.window.showTextDocument(document);
+      if (key) {
+        const range = new vscode.Range(document.positionAt(key.start), document.positionAt(key.end));
+        editor.selection = new vscode.Selection(range.start, range.end);
+        editor.revealRange(range, vscode.TextEditorRevealType.InCenterIfOutsideViewport);
+      }
     })
   );
   context.subscriptions.push(
@@ -99,6 +147,10 @@ export function activate(context: vscode.ExtensionContext): void {
   // Sidebar title-bar toggle between each script's command and its
   // "scripts-info" text. Only one of the two buttons shows at a time.
   context.subscriptions.push(
+    vscode.commands.registerCommand("runSidebar.groupByStage", () => setGroupBy("stage")),
+    vscode.commands.registerCommand("runSidebar.groupBySection", () => setGroupBy("section"))
+  );
+  context.subscriptions.push(
     vscode.commands.registerCommand("runSidebar.showScriptInfo", () => setScriptDescription("info")),
     vscode.commands.registerCommand("runSidebar.showScriptCommands", () =>
       setScriptDescription("command")
@@ -108,6 +160,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (isRunSidebarConfigChange(event)) {
         treeProvider.refresh();
+        validateOpenDocuments();
       }
     })
   );
@@ -116,9 +169,57 @@ export function activate(context: vscode.ExtensionContext): void {
       treeProvider.refresh();
     })
   );
+
+  // scripts-info checks in the Problems panel, for open package.json files.
+  function validateOpenDocuments(): void {
+    const enabled = getConfig().validateScriptsInfo;
+    for (const document of vscode.workspace.textDocuments) {
+      validator.validate(document, enabled);
+    }
+  }
+  validateOpenDocuments();
+  context.subscriptions.push(
+    vscode.languages.registerCodeActionsProvider(
+      { pattern: "**/package.json" },
+      validator,
+      { providedCodeActionKinds: ScriptsInfoValidator.providedCodeActionKinds }
+    ),
+    vscode.workspace.onDidOpenTextDocument((document) =>
+      validator.validate(document, getConfig().validateScriptsInfo)
+    ),
+    vscode.workspace.onDidChangeTextDocument((event) =>
+      validator.validate(event.document, getConfig().validateScriptsInfo)
+    ),
+    vscode.workspace.onDidCloseTextDocument((document) => {
+      if (isPackageJson(document.uri)) {
+        validator.clear(document.uri);
+      }
+    })
+  );
 }
 
 export function deactivate(): void {}
+
+/**
+ * Scripts marked "confirm" in scripts-info ask first: `true` asks
+ * "Run …?", a string is shown as the warning. Everything else runs at once.
+ */
+async function confirmIfAsked(item: ScriptRunItem): Promise<boolean> {
+  const confirm = item.packageFile.scriptInfo[item.scriptName]?.confirm;
+  if (!confirm) {
+    return true;
+  }
+  const command = item.packageFile.scripts[item.scriptName];
+  const answer = await vscode.window.showWarningMessage(
+    `Run "${item.scriptName}"?`,
+    {
+      modal: true,
+      detail: `${typeof confirm === "string" ? `${confirm}\n\n` : ""}Command: ${command}`
+    },
+    "Run"
+  );
+  return answer === "Run";
+}
 
 async function buildRunRequest(
   item: ScriptRunItem | undefined,

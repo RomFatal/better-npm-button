@@ -6,6 +6,7 @@ export type PackageManager = "auto" | "npm" | "pnpm" | "yarn" | "bun";
 export type TerminalMode = "reuse" | "new";
 export type SortOrder = "original" | "alphabetical" | "alphabeticalGrouped";
 export type ScriptDescription = "info" | "command";
+export type GroupBy = "section" | "stage";
 export type ScriptColor = "default" | "green" | "blue" | "red" | "yellow" | "cyan" | "magenta";
 
 const SECTION = "runSidebar";
@@ -21,6 +22,9 @@ export interface RunSidebarConfig {
   accentColor: ScriptColor;
   scriptDescription: ScriptDescription;
   showEnvIcons: boolean;
+  groupBy: GroupBy;
+  showRunStatus: boolean;
+  validateScriptsInfo: boolean;
 }
 
 export function getConfig(): RunSidebarConfig {
@@ -44,7 +48,10 @@ export function getConfig(): RunSidebarConfig {
     sortOrder: config.get<SortOrder>("sortOrder", "original"),
     accentColor: config.get<ScriptColor>("accentColor", "default"),
     scriptDescription: config.get<ScriptDescription>("scriptDescription", "command"),
-    showEnvIcons: config.get<boolean>("showEnvIcons", true)
+    showEnvIcons: config.get<boolean>("showEnvIcons", true),
+    groupBy: config.get<GroupBy>("groupBy", "section"),
+    showRunStatus: config.get<boolean>("showRunStatus", true),
+    validateScriptsInfo: config.get<boolean>("validateScriptsInfo", true)
   };
 }
 
@@ -54,15 +61,24 @@ export function getConfig(): RunSidebarConfig {
  * Settings UI never disagree; a setting set nowhere goes to user settings.
  */
 export async function setScriptDescription(value: ScriptDescription): Promise<void> {
+  await updateInCurrentScope("scriptDescription", value);
+}
+
+/** Same, for the Group by Section / Group by Stage title-bar toggle. */
+export async function setGroupBy(value: GroupBy): Promise<void> {
+  await updateInCurrentScope("groupBy", value);
+}
+
+async function updateInCurrentScope(key: string, value: unknown): Promise<void> {
   const config = vscode.workspace.getConfiguration(SECTION);
-  const current = config.inspect<ScriptDescription>("scriptDescription");
+  const current = config.inspect(key);
   const target =
     current?.workspaceFolderValue !== undefined
       ? vscode.ConfigurationTarget.WorkspaceFolder
       : current?.workspaceValue !== undefined
         ? vscode.ConfigurationTarget.Workspace
         : vscode.ConfigurationTarget.Global;
-  await config.update("scriptDescription", value, target);
+  await config.update(key, value, target);
 }
 
 export function isRunSidebarConfigChange(event: vscode.ConfigurationChangeEvent): boolean {

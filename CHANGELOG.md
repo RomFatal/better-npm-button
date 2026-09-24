@@ -1,5 +1,14 @@
 # Change Log
 
+## 0.3.0
+
+- **Run status:** a spinning icon while a script runs, then ✓ / ✗ / ■ and how long it took beside its name, with details on hover (uses terminal shell integration, VS Code 1.93+). Setting: `runSidebar.showRunStatus`
+- **Group by stage:** a `stage` field in `"scripts-info"` and a title-bar toggle between grouping by `//` section and by stage. Setting: `runSidebar.groupBy`
+- **Confirm before running:** `"confirm": true` or a warning message in `"scripts-info"`; applies to click, Rerun Last and Run with Arguments. Off unless you add it
+- **Run with Arguments…** in the script's right-click menu, remembering the last arguments per script
+- **Open in package.json** in the script's right-click menu
+- **Checking scripts-info:** Problems-panel warnings for info about missing scripts and notes for scripts without info, with a quick fix. Setting: `runSidebar.validateScriptsInfo`
+
 ## 0.2.18
 
 - Environment icons: a script whose `"scripts-info"` entry has an `env` field mentioning prod / production / live gets a red cloud icon; local / localhost / dev / development gets a green computer icon. The icon replaces the play icon on the row and appears on the tooltip's **Env:** line

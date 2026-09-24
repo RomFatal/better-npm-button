@@ -21,6 +21,10 @@ export interface PackageScriptFile {
  */
 export interface ScriptInfo {
   description?: string;
+  /** Workflow step the script belongs to ("develop", "release"…), for Group by Stage. */
+  stage?: string;
+  /** Ask before running: true, or the warning text to show. */
+  confirm?: true | string;
   /** Extra fields in package.json order, as [label, value]: [["Env", "prod server"]]. */
   details: Array<[string, string]>;
 }
@@ -121,11 +125,21 @@ function parseScriptInfo(raw: Record<string, unknown> | undefined): Record<strin
       }
       if (key === "description" && typeof field === "string") {
         info.description = field;
+      } else if (key === "confirm") {
+        // false / "" mean "don't ask"; anything else asks.
+        if (field === true) {
+          info.confirm = true;
+        } else if (typeof field === "string" && field.trim()) {
+          info.confirm = field.trim();
+        }
+      } else if (key === "stage" && typeof field === "string" && field.trim()) {
+        info.stage = field.trim();
+        info.details.push(["Stage", info.stage]);
       } else {
         info.details.push([toLabel(key), String(field)]);
       }
     }
-    if (info.description !== undefined || info.details.length > 0) {
+    if (info.description !== undefined || info.details.length > 0 || info.confirm) {
       parsed[scriptName] = info;
     }
   }

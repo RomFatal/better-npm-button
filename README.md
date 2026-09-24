@@ -31,6 +31,11 @@ VS Code already exposes npm scripts in a few places, but the experience is easy 
 - Pin any script to the top of the list with a hover icon; reorder pins via right-click
 - Shows what each script does, from a `"scripts-info"` block in `package.json` — beside the name and on hover ([details](#script-info))
 - Marks scripts that hit production (red cloud) or a local server (green computer), from an `env` field in `"scripts-info"`
+- Shows which scripts are running (spinning icon) and how the last run ended — ✓ / ✗ and how long it took ([details](#run-status))
+- Groups scripts by workflow stage — develop, check, release… — from a `stage` field ([details](#group-by-stage))
+- Asks before running scripts you mark with `confirm`, such as a release ([details](#confirm-before-running))
+- Right-click a script to **Run with Arguments…** or **Open in package.json**
+- Checks `"scripts-info"` against your scripts in the Problems panel, with a quick fix for missing entries ([details](#checking-scripts-info))
 
 ## Install
 
@@ -52,7 +57,15 @@ VS Code already exposes npm scripts in a few places, but the experience is easy 
 Use the title bar actions in the view to:
 
 - refresh script discovery
-- rerun the last executed script
+- rerun the last executed script (with the same arguments, asking again if it's marked `confirm`)
+- switch between showing commands and script info
+- switch between grouping by section and by stage
+
+Right-click a script to:
+
+- **Run with Arguments…** — type extra arguments (e.g. `--watch` or a test file); they're remembered per script for next time. For npm the extension adds the `--` npm needs; pnpm, yarn and bun get them as typed.
+- **Open in package.json** — jump to the script's line.
+- pin, unpin, reorder pins, or set its icon color.
 
 ## Settings
 
@@ -99,6 +112,21 @@ Either way, hovering a script shows both its info and its command. The button in
 
 - `true` (default): scripts whose `env` mentions prod or local get a red cloud or green computer icon. See [Environment icons](#script-info).
 - `false`: they keep the play icon.
+
+### `runSidebar.groupBy`
+
+- `section` (default): group scripts under `//` section headers.
+- `stage`: group scripts by their `stage` field. See [Group by stage](#group-by-stage).
+
+### `runSidebar.showRunStatus`
+
+- `true` (default): spinning icon while a script runs, then ✓ / ✗ and the time taken. See [Run status](#run-status).
+- `false`: no status.
+
+### `runSidebar.validateScriptsInfo`
+
+- `true` (default): report `"scripts-info"` problems in the Problems panel. See [Checking scripts-info](#checking-scripts-info).
+- `false`: no checks.
 
 ### `runSidebar.sortOrder`
 
@@ -215,6 +243,68 @@ In `button` UI mode the text beside the name is shortened to one line; the toolt
 - **Live updates:** editing `package.json` refreshes the sidebar immediately, like any script change.
 - **Keep it short.** The sidebar is narrow: about 50 characters fits on one line. Longer text is cut off beside the name but shown in full on hover.
 - **Section headers** (`//` keys) don't take info.
+
+### Group by stage
+
+Give each script a `stage` in `"scripts-info"` — the step of your workflow it belongs to — and click the **Group by Stage** button (layers icon) in the Scripts view title bar:
+
+```json
+"scripts-info": {
+  "dev":     { "description": "Run the app with hot reload.", "stage": "develop" },
+  "test":    { "description": "Run the unit tests once.", "stage": "check" },
+  "build":   { "description": "Production build.", "stage": "package" },
+  "release": { "description": "Publish to all users.", "stage": "release" }
+}
+```
+
+- Stage names are yours; common ones are `develop`, `check`, `package`, `release`, `maintain`.
+- Groups appear in the order their stage first appears in `"scripts"`, so reorder `"scripts"` to reorder the groups. Names are shown capitalized; `Develop` and `develop` are the same stage.
+- Scripts without a stage go in a last group, **Other**.
+- `//` section headers aren't shown in this view; click **Group by Section** (list icon) to go back to them.
+- Pinned scripts stay at the top in both views.
+- The stage also shows as a **Stage:** line on hover.
+
+### Confirm before running
+
+Scripts run as soon as you click them. For scripts where a slip is costly, add `confirm`:
+
+```json
+"release": {
+  "description": "Publish to all users.",
+  "confirm": "Publishes a new version to every user."
+}
+```
+
+- `"confirm": true` asks **Run "release"?** with the command shown.
+- A string is shown as the warning above the command.
+- `false` or leaving it out: no question.
+- Applies to clicking the script, **Rerun Last Script** and **Run with Arguments…**.
+- The tooltip says **Asks before running** for these scripts.
+
+### Run status
+
+While a script runs, its icon spins. When it ends, the grey text starts with the result and how long it took:
+
+- `✓ 3m 44s` — exited with code 0
+- `✗ 12s` — failed (hover shows the exit code)
+- `■ 0.8s` — stopped: interrupted, the terminal was closed, or another script took over the shared terminal
+
+Hover shows the details, e.g. **Last run:** succeeded in 3m 44s (started 14:02). The status lasts until the next run or until VS Code restarts.
+
+This uses VS Code's terminal shell integration (VS Code 1.93+, with bash, zsh, fish or PowerShell, which VS Code sets up automatically). If a terminal doesn't have it within 3 seconds, the script still runs, just without status, and later runs stop waiting for it. Turn it off with `runSidebar.showRunStatus`.
+
+### Checking scripts-info
+
+In a `package.json` that has a `"scripts-info"` block, open the file and the Problems panel shows:
+
+- a **warning** on an entry for a script that doesn't exist (renamed or removed)
+- a **note** on each script without info, with a quick fix (lightbulb, or `Cmd+.` / `Ctrl+.`) that adds an empty entry to fill in
+
+`//` section headers are never expected to have info, and projects without `"scripts-info"` see nothing. Turn it off with `runSidebar.validateScriptsInfo`.
+
+### Reserved fields
+
+In an object entry, `description`, `stage` and `confirm` have the meanings above; `env` also drives the environment icons. Every other field is shown as a labelled line on hover.
 
 ## Behavior Notes
 

@@ -2,7 +2,7 @@
   "name": "better-npm-button",
   "displayName": "Better Npm Button",
   "description": "Run package.json scripts from the Activity Bar. Supports pinning, section headers, sort order, and multi-package workspaces.",
-  "version": "0.2.18",
+  "version": "0.3.0",
   "publisher": "romfatal",
   "license": "MIT",
   "preview": false,
@@ -110,6 +110,26 @@
         "command": "runSidebar.showScriptCommands",
         "title": "Run: Show Script Commands",
         "icon": "$(terminal)"
+      },
+      {
+        "command": "runSidebar.runWithArgs",
+        "title": "Run: Run with Arguments…",
+        "icon": "$(debug-console)"
+      },
+      {
+        "command": "runSidebar.openInPackageJson",
+        "title": "Run: Open in package.json",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "runSidebar.groupByStage",
+        "title": "Run: Group by Stage",
+        "icon": "$(layers)"
+      },
+      {
+        "command": "runSidebar.groupBySection",
+        "title": "Run: Group by Section",
+        "icon": "$(list-tree)"
       }
     ],
     "viewsContainers": {
@@ -150,6 +170,16 @@
         {
           "command": "runSidebar.showScriptCommands",
           "when": "view == runSidebar.scripts && config.runSidebar.scriptDescription == 'info'",
+          "group": "navigation"
+        },
+        {
+          "command": "runSidebar.groupByStage",
+          "when": "view == runSidebar.scripts && config.runSidebar.groupBy != 'stage'",
+          "group": "navigation"
+        },
+        {
+          "command": "runSidebar.groupBySection",
+          "when": "view == runSidebar.scripts && config.runSidebar.groupBy == 'stage'",
           "group": "navigation"
         }
       ],
@@ -193,6 +223,26 @@
           "command": "runSidebar.movePinnedDown",
           "when": "view == runSidebar.scripts && (viewItem == script.pinned.first || viewItem == script.pinned.middle)",
           "group": "script@3"
+        },
+        {
+          "command": "runSidebar.runWithArgs",
+          "when": "view == runSidebar.scripts && viewItem =~ /^script/",
+          "group": "0_run@1"
+        },
+        {
+          "command": "runSidebar.openInPackageJson",
+          "when": "view == runSidebar.scripts && viewItem =~ /^script/",
+          "group": "0_run@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "runSidebar.runWithArgs",
+          "when": "false"
+        },
+        {
+          "command": "runSidebar.openInPackageJson",
+          "when": "false"
         }
       ]
     },
@@ -288,6 +338,29 @@
           "type": "boolean",
           "default": true,
           "markdownDescription": "Show an environment icon for scripts whose `\"scripts-info\"` entry has an `env` field: a red cloud when it mentions prod / production / live, a green computer when it mentions local / localhost / dev / development. It replaces the play icon on that row and appears on the Env line of the tooltip."
+        },
+        "runSidebar.groupBy": {
+          "type": "string",
+          "enum": [
+            "section",
+            "stage"
+          ],
+          "enumDescriptions": [
+            "Group scripts under their // section headers (default).",
+            "Group scripts by the \"stage\" field of their scripts-info entry; scripts without one go under Other."
+          ],
+          "default": "section",
+          "markdownDescription": "How scripts are grouped. `stage` uses the `\"stage\"` field in `\"scripts-info\"` (e.g. `develop`, `check`, `release`), in the order stages first appear. The Group by Stage / Group by Section button in the Scripts view title bar switches between the two."
+        },
+        "runSidebar.showRunStatus": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show a spinning icon while a script runs, then ✓ / ✗ and how long it took beside its name, with details on hover. Needs VS Code terminal shell integration (VS Code 1.93+, bash / zsh / fish / PowerShell); without it, scripts run as before with no status."
+        },
+        "runSidebar.validateScriptsInfo": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "In `package.json` files that have a `\"scripts-info\"` block, report entries for scripts that no longer exist (warning) and scripts without info (note, with a quick fix that adds one) in the Problems panel."
         },
         "runSidebar.sortOrder": {
           "type": "string",

@@ -1,8 +1,9 @@
 import * as vscode from "vscode";
-import { RunScope, ScriptColor, ScriptDescription, ScriptUiMode, SortOrder, getConfig } from "../config";
+import { GroupBy, RunScope, ScriptColor, ScriptDescription, ScriptUiMode, SortOrder, getConfig } from "../config";
 import { PackageScriptFile, ScriptInfo } from "../services/packageDiscoveryService";
 import { PinnedScriptsService } from "../services/pinnedScriptsService";
 import { ScriptColorService } from "../services/scriptColorService";
+import { RunState, RunStateService, formatDuration } from "../services/runStateService";
 
 export interface ScriptRunItem {
   packageFile: PackageScriptFile;
@@ -16,6 +17,9 @@ interface ScriptDisplayOptions {
   accentColor: ScriptColor;
   scriptDescription: ScriptDescription;
   showEnvIcons: boolean;
+  groupBy: GroupBy;
+  /** Run status of a script by RunStateService key, or undefined when not shown. */
+  runStateOf: (key: string) => RunState | undefined;
   colorService: ScriptColorService;
   packageUri: string;
 }
@@ -28,7 +32,8 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
   public constructor(
     private readonly loadPackages: (scope: RunScope) => Promise<PackageScriptFile[]>,
     private readonly pinnedService: PinnedScriptsService,
-    private readonly colorService: ScriptColorService
+    private readonly colorService: ScriptColorService,
+    private readonly runState: RunStateService
   ) {}
 
   public refresh(): void {
@@ -49,6 +54,8 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       accentColor: config.accentColor,
       scriptDescription: config.scriptDescription,
       showEnvIcons: config.showEnvIcons,
+      groupBy: config.groupBy,
+      runStateOf: (key: string) => (config.showRunStatus ? this.runState.get(key) : undefined),
       colorService: this.colorService,
       packageUri: ""
     };
@@ -124,6 +131,11 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       }
     }
 
+    if (displayOptions.groupBy === "stage") {
+      items.push(...this.groupByStage(packageFile, rest, displayOptions));
+      return items;
+    }
+
     let currentGroup: SectionGroupItem | null = null;
 
     for (const name of rest) {
@@ -142,6 +154,54 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
 
     return items;
   }
+
+  /**
+   * One group per "stage" in scripts-info, in the order stages first appear;
+   * scripts without a stage go last, under "Other". // section headers are
+   * left out: stages replace them in this view.
+   */
+  private groupByStage(
+    packageFile: PackageScriptFile,
+    names: string[],
+    displayOptions: ScriptDisplayOptions
+  ): RunItem[] {
+    const groups = new Map<string, SectionGroupItem>();
+    const other: ScriptItem[] = [];
+
+    for (const name of names) {
+      if (isCommentScriptKey(name)) {
+        continue;
+      }
+      const item = new ScriptItem(packageFile, name, displayOptions, null);
+      const stage = packageFile.scriptInfo[name]?.stage;
+      if (!stage) {
+        other.push(item);
+        continue;
+      }
+      const key = stage.toLowerCase();
+      let group = groups.get(key);
+      if (!group) {
+        group = new SectionGroupItem(stage, capitalize(stage));
+        groups.set(key, group);
+      }
+      group.sectionChildren.push(item);
+    }
+
+    const result: RunItem[] = [...groups.values()];
+    if (other.length > 0) {
+      if (groups.size === 0) {
+        return other;
+      }
+      const otherGroup = new SectionGroupItem("other", "Other");
+      otherGroup.sectionChildren.push(...other);
+      result.push(otherGroup);
+    }
+    return result;
+  }
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function partitionByPinned(
@@ -304,7 +364,9 @@ export class ScriptItem extends RunItem {
       displayOptions.scriptDescription === "info" && scriptInfo?.description
         ? scriptInfo.description
         : scriptValue;
-    this.description = buildScriptDescription(inlineText, displayOptions.uiMode);
+    const runState = displayOptions.runStateOf(RunStateService.keyFor(packageFile.packageDir, scriptName));
+    const runBadge = runState ? formatRunBadge(runState) : "";
+    this.description = runBadge + buildScriptDescription(inlineText, displayOptions.uiMode);
     // Info and its detail fields are plain text from package.json:
     // appendText escapes them. Each goes on its own line, before the
     // Script / Command / Package lines.
@@ -330,6 +392,8 @@ export class ScriptItem extends RunItem {
     tooltip.appendMarkdown(
       [
         displayOptions.uiMode === "button" ? `**Action:** Click to run \`${scriptName}\`` : undefined,
+        runState ? `**Last run:** ${describeRun(runState)}` : undefined,
+        scriptInfo?.confirm ? "**Asks before running**" : undefined,
         `**Script:** \`${scriptName}\``,
         `**Command:** \`${scriptValue}\``,
         `**Package:** ${packageFile.displayName}`
@@ -346,7 +410,9 @@ export class ScriptItem extends RunItem {
     const colorName = resolveColorName(scriptName, displayOptions, pinnedPosition ? null : env?.color);
     const themeColor = colorName ? new vscode.ThemeColor(THEME_COLOR_MAP[colorName]) : undefined;
 
-    if (pinnedPosition) {
+    if (runState?.status === "running") {
+      this.iconPath = new vscode.ThemeIcon("loading~spin");
+    } else if (pinnedPosition) {
       this.iconPath = new vscode.ThemeIcon("pinned", themeColor);
     } else if (env) {
       this.iconPath = new vscode.ThemeIcon(env.icon, themeColor);
@@ -376,8 +442,8 @@ class PinnedHeaderItem extends RunItem {
 class SectionGroupItem extends RunItem {
   public readonly sectionChildren: ScriptItem[] = [];
 
-  public constructor(rawKey: string) {
-    super(formatSectionLabel(rawKey), vscode.TreeItemCollapsibleState.Expanded);
+  public constructor(rawKey: string, label = formatSectionLabel(rawKey)) {
+    super(label, vscode.TreeItemCollapsibleState.Expanded);
 
     this.contextValue = "sectionGroup";
     this.tooltip = rawKey;
@@ -388,6 +454,36 @@ function formatSectionLabel(rawKey: string): string {
   const trimmed = rawKey.trim().replace(/^\/+/, "");
   const stripped = trimmed.replace(/^[=\-\s]+|[=\-\s]+$/g, "").trim();
   return stripped.length > 0 ? stripped : rawKey;
+}
+
+/** "✓ 3m 44s · " before the grey text; nothing while running (the icon spins). */
+function formatRunBadge(state: RunState): string {
+  if (state.status === "running" || state.endedAt === undefined) {
+    return "";
+  }
+  const took = formatDuration(state.endedAt - state.startedAt);
+  if (state.status === "succeeded") {
+    return `✓ ${took} · `;
+  }
+  if (state.status === "failed") {
+    return `✗ ${took} · `;
+  }
+  return `■ ${took} · `;
+}
+
+function describeRun(state: RunState): string {
+  const started = new Date(state.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  if (state.status === "running" || state.endedAt === undefined) {
+    return `running since ${started}`;
+  }
+  const took = formatDuration(state.endedAt - state.startedAt);
+  if (state.status === "succeeded") {
+    return `succeeded in ${took} (started ${started})`;
+  }
+  if (state.status === "failed") {
+    return `failed with exit code ${state.exitCode} after ${took} (started ${started})`;
+  }
+  return `stopped after ${took} (started ${started})`;
 }
 
 function buildScriptLabel(scriptName: string, uiMode: ScriptUiMode): string {
