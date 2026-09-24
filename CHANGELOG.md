@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.2.15
+
+- Shows what each script does: descriptions come from a `"scripts-info"` object in `package.json` (keyed by script name), with `ntl.descriptions` also supported
+- The description replaces the command beside the script name and leads the hover tooltip; scripts without one still show their command
+- Added `runSidebar.scriptDescription` setting — `info` (default) or `command` to always show the command
+
 ## 0.2.14
 
 - Removed label text coloring — color applies to the icon only, so selected/hovered items stay white as expected

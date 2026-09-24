@@ -10,11 +10,15 @@ export interface PackageScriptFile {
   displayName: string;
   relativeDirectory: string;
   scripts: Record<string, string>;
+  /** Human descriptions keyed by script name, from "scripts-info" (or ntl.descriptions). */
+  scriptDescriptions: Record<string, string>;
 }
 
 interface PackageJsonShape {
   name?: string;
   scripts?: Record<string, string>;
+  "scripts-info"?: Record<string, unknown>;
+  ntl?: { descriptions?: Record<string, unknown> };
 }
 
 export class PackageDiscoveryService {
@@ -62,6 +66,10 @@ export class PackageDiscoveryService {
       const packageDir = vscode.Uri.joinPath(packageJsonUri, "..");
       const relativeDirectory = path.posix.relative(workspaceFolder.uri.path, packageDir.path) || ".";
       const scripts = normalizeScripts(packageJson.scripts);
+      const scriptDescriptions = {
+        ...normalizeScripts(packageJson.ntl?.descriptions),
+        ...normalizeScripts(packageJson["scripts-info"])
+      };
 
       return {
         workspaceFolder,
@@ -70,7 +78,8 @@ export class PackageDiscoveryService {
         packageName: packageJson.name,
         displayName: buildDisplayName(workspaceFolder, relativeDirectory, packageJson.name),
         relativeDirectory,
-        scripts
+        scripts,
+        scriptDescriptions
       };
     } catch {
       return undefined;
@@ -78,10 +87,11 @@ export class PackageDiscoveryService {
   }
 }
 
-function normalizeScripts(scripts: PackageJsonShape["scripts"]): Record<string, string> {
+/** Keeps the string entries of a name → text map; anything else is ignored. */
+function normalizeScripts(scripts: Record<string, unknown> | undefined): Record<string, string> {
   const normalized: Record<string, string> = {};
 
-  if (!scripts) {
+  if (!scripts || typeof scripts !== "object") {
     return normalized;
   }
 

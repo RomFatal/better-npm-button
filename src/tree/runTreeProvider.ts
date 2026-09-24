@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { RunScope, ScriptColor, ScriptUiMode, SortOrder, getConfig } from "../config";
+import { RunScope, ScriptColor, ScriptDescription, ScriptUiMode, SortOrder, getConfig } from "../config";
 import { PackageScriptFile } from "../services/packageDiscoveryService";
 import { PinnedScriptsService } from "../services/pinnedScriptsService";
 import { ScriptColorService } from "../services/scriptColorService";
@@ -14,6 +14,7 @@ interface ScriptDisplayOptions {
   uiMode: ScriptUiMode;
   sortOrder: SortOrder;
   accentColor: ScriptColor;
+  scriptDescription: ScriptDescription;
   colorService: ScriptColorService;
   packageUri: string;
 }
@@ -45,6 +46,7 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       uiMode: config.scriptUiMode,
       sortOrder: config.sortOrder,
       accentColor: config.accentColor,
+      scriptDescription: config.scriptDescription,
       colorService: this.colorService,
       packageUri: ""
     };
@@ -251,6 +253,7 @@ export class ScriptItem extends RunItem {
     this.scriptName = scriptName;
 
     const scriptValue = packageFile.scripts[scriptName];
+    const scriptInfo = packageFile.scriptDescriptions[scriptName];
 
     this.command = {
       command: "runSidebar.runScript",
@@ -262,8 +265,18 @@ export class ScriptItem extends RunItem {
         } satisfies ScriptRunItem
       ]
     };
-    this.description = buildScriptDescription(scriptValue, displayOptions.uiMode);
-    this.tooltip = new vscode.MarkdownString(
+    // Grey text beside the name: the script's "scripts-info" description when
+    // it has one (and the setting allows), otherwise the command itself.
+    const inlineText =
+      displayOptions.scriptDescription === "info" && scriptInfo ? scriptInfo : scriptValue;
+    this.description = buildScriptDescription(inlineText, displayOptions.uiMode);
+    // The description is plain text from package.json: appendText escapes it.
+    const tooltip = new vscode.MarkdownString();
+    if (scriptInfo) {
+      tooltip.appendText(scriptInfo);
+      tooltip.appendMarkdown("\n\n");
+    }
+    tooltip.appendMarkdown(
       [
         displayOptions.uiMode === "button" ? `**Action:** Click to run \`${scriptName}\`` : undefined,
         `**Script:** \`${scriptName}\``,
@@ -273,6 +286,7 @@ export class ScriptItem extends RunItem {
         .filter((line): line is string => Boolean(line))
         .join("\n\n")
     );
+    this.tooltip = tooltip;
     this.contextValue = pinnedPosition ? `script.pinned.${pinnedPosition}` : "script";
 
     const colorName = resolveColorName(scriptName, displayOptions);

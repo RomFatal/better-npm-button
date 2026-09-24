@@ -29,6 +29,7 @@ VS Code already exposes npm scripts in a few places, but the experience is easy 
 - Renders `//` comment keys as non-runnable section headers, preserving your groupings
 - Configurable sort order — original, alphabetical, or alphabetical within each section
 - Pin any script to the top of the list with a hover icon; reorder pins via right-click
+- Shows what each script does, from a `"scripts-info"` block in `package.json`
 
 ## Install
 
@@ -84,6 +85,11 @@ Use the title bar actions in the view to:
 - `true`: focus the terminal after starting a script
 - `false`: keep focus in the sidebar
 
+### `runSidebar.scriptDescription`
+
+- `info`: show the script's description beside its name, or its command when it has no description (default)
+- `command`: always show the command
+
 ### `runSidebar.sortOrder`
 
 - `original`: show scripts in the order they appear in `package.json` (default)
@@ -109,6 +115,23 @@ Script keys that start with `//` are treated as non-runnable section headers. Th
   "test": "vitest"
 }
 ```
+
+### Script descriptions
+
+`package.json` can't hold comments, so describe your scripts in a `"scripts-info"` object next to `"scripts"`, keyed by script name. npm ignores it:
+
+```json
+"scripts": {
+  "dev": "vite",
+  "release": "bash ./scripts/release.sh"
+},
+"scripts-info": {
+  "dev": "Run the app with hot reload.",
+  "release": "Publish to all users: bump version, build, upload."
+}
+```
+
+The description replaces the command beside the script name, and appears at the top of its hover tooltip along with the command. Descriptions in `ntl.descriptions` (the format used by `ntl`) are read too; `"scripts-info"` wins when both describe the same script.
 
 ## Behavior Notes
 

@@ -2,7 +2,7 @@
   "name": "better-npm-button",
   "displayName": "Better Npm Button",
   "description": "Run package.json scripts from the Activity Bar. Supports pinning, section headers, sort order, and multi-package workspaces.",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "publisher": "romfatal",
   "license": "MIT",
   "preview": false,
@@ -250,6 +250,19 @@
           ],
           "default": "default",
           "description": "Global icon color for all scripts. Individual per-script colors (set via hover icon) take priority."
+        },
+        "runSidebar.scriptDescription": {
+          "type": "string",
+          "enum": [
+            "info",
+            "command"
+          ],
+          "enumDescriptions": [
+            "Show the script's description from the \"scripts-info\" block in package.json, or its command when it has none.",
+            "Always show the script's command."
+          ],
+          "default": "info",
+          "markdownDescription": "What to show beside each script name. Descriptions come from a `\"scripts-info\"` object in `package.json` that maps script names to text (`ntl.descriptions` also works). The description is always shown when hovering a script."
         },
         "runSidebar.sortOrder": {
           "type": "string",
