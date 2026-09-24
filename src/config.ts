@@ -20,6 +20,7 @@ export interface RunSidebarConfig {
   sortOrder: SortOrder;
   accentColor: ScriptColor;
   scriptDescription: ScriptDescription;
+  showEnvIcons: boolean;
 }
 
 export function getConfig(): RunSidebarConfig {
@@ -42,7 +43,8 @@ export function getConfig(): RunSidebarConfig {
     focusTerminal: config.get<boolean>("focusTerminal", true),
     sortOrder: config.get<SortOrder>("sortOrder", "original"),
     accentColor: config.get<ScriptColor>("accentColor", "default"),
-    scriptDescription: config.get<ScriptDescription>("scriptDescription", "command")
+    scriptDescription: config.get<ScriptDescription>("scriptDescription", "command"),
+    showEnvIcons: config.get<boolean>("showEnvIcons", true)
   };
 }
 

@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.2.18
+
+- Environment icons: a script whose `"scripts-info"` entry has an `env` field mentioning prod / production / live gets a red cloud icon; local / localhost / dev / development gets a green computer icon. The icon replaces the play icon on the row and appears on the tooltip's **Env:** line
+- Pinned scripts keep the pin; per-script and accent colors override the red/green
+- Added `runSidebar.showEnvIcons` setting (default on)
+
 ## 0.2.17
 
 - `"scripts-info"` entries can be objects: `description` plus any extra fields (e.g. `"env": "prod server"`), each shown as its own labelled line in the hover tooltip (**Env:**). Plain string entries work as before

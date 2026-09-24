@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { RunScope, ScriptColor, ScriptDescription, ScriptUiMode, SortOrder, getConfig } from "../config";
-import { PackageScriptFile } from "../services/packageDiscoveryService";
+import { PackageScriptFile, ScriptInfo } from "../services/packageDiscoveryService";
 import { PinnedScriptsService } from "../services/pinnedScriptsService";
 import { ScriptColorService } from "../services/scriptColorService";
 
@@ -15,6 +15,7 @@ interface ScriptDisplayOptions {
   sortOrder: SortOrder;
   accentColor: ScriptColor;
   scriptDescription: ScriptDescription;
+  showEnvIcons: boolean;
   colorService: ScriptColorService;
   packageUri: string;
 }
@@ -47,6 +48,7 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       sortOrder: config.sortOrder,
       accentColor: config.accentColor,
       scriptDescription: config.scriptDescription,
+      showEnvIcons: config.showEnvIcons,
       colorService: this.colorService,
       packageUri: ""
     };
@@ -175,7 +177,8 @@ export const THEME_COLOR_MAP: Record<Exclude<ScriptColor, "default">, string> = 
 
 function resolveColorName(
   scriptName: string,
-  displayOptions: ScriptDisplayOptions
+  displayOptions: ScriptDisplayOptions,
+  envColor: Exclude<ScriptColor, "default"> | null = null
 ): Exclude<ScriptColor, "default"> | null {
   const individual = displayOptions.colorService.getColor(scriptName, displayOptions.packageUri);
   const effective = individual ?? displayOptions.accentColor;
@@ -184,7 +187,37 @@ function resolveColorName(
     return effective;
   }
 
+  if (envColor) {
+    return envColor;
+  }
+
   return displayOptions.uiMode === "button" ? "green" : null;
+}
+
+interface EnvStyle {
+  icon: string;
+  color: Exclude<ScriptColor, "default">;
+}
+
+/**
+ * Environments the extension recognises in a script's "env" (or
+ * "environment") field, by keyword, so any project gets the icons just by
+ * writing e.g. "env": "prod server". First match wins.
+ */
+const ENV_STYLES: Array<{ pattern: RegExp; style: EnvStyle }> = [
+  { pattern: /\b(prod|production|live)\b/i, style: { icon: "cloud", color: "red" } },
+  {
+    pattern: /\b(local|localhost|dev|development)\b/i,
+    style: { icon: "device-desktop", color: "green" }
+  }
+];
+
+function detectEnv(info: ScriptInfo | undefined): EnvStyle | null {
+  const value = info?.details.find(([label]) => /^env(ironment)?$/i.test(label))?.[1];
+  if (!value) {
+    return null;
+  }
+  return ENV_STYLES.find(({ pattern }) => pattern.test(value))?.style ?? null;
 }
 
 
@@ -275,7 +308,11 @@ export class ScriptItem extends RunItem {
     // Info and its detail fields are plain text from package.json:
     // appendText escapes them. Each goes on its own line, before the
     // Script / Command / Package lines.
+    const env = displayOptions.showEnvIcons ? detectEnv(scriptInfo) : null;
     const tooltip = new vscode.MarkdownString();
+    // Lets the Env line carry its $(icon); appendText still escapes any
+    // $(...) the user wrote, so only ours renders.
+    tooltip.supportThemeIcons = true;
     const infoLines: Array<[string, string]> = [
       ...(scriptInfo?.description ? [["Info", scriptInfo.description] as [string, string]] : []),
       ...(scriptInfo?.details ?? [])
@@ -284,6 +321,9 @@ export class ScriptItem extends RunItem {
       tooltip.appendMarkdown("**");
       tooltip.appendText(`${label}:`);
       tooltip.appendMarkdown("** ");
+      if (env && /^env(ironment)?$/i.test(label)) {
+        tooltip.appendMarkdown(`$(${env.icon}) `);
+      }
       tooltip.appendText(text);
       tooltip.appendMarkdown("\n\n");
     }
@@ -300,11 +340,16 @@ export class ScriptItem extends RunItem {
     this.tooltip = tooltip;
     this.contextValue = pinnedPosition ? `script.pinned.${pinnedPosition}` : "script";
 
-    const colorName = resolveColorName(scriptName, displayOptions);
+    // A recognised env replaces the play icon (pinned rows keep the pin);
+    // a color set on the script, or the accent color, still wins over the
+    // env's own red/green.
+    const colorName = resolveColorName(scriptName, displayOptions, pinnedPosition ? null : env?.color);
     const themeColor = colorName ? new vscode.ThemeColor(THEME_COLOR_MAP[colorName]) : undefined;
 
     if (pinnedPosition) {
       this.iconPath = new vscode.ThemeIcon("pinned", themeColor);
+    } else if (env) {
+      this.iconPath = new vscode.ThemeIcon(env.icon, themeColor);
     } else if (displayOptions.showPlayIcon) {
       this.iconPath = new vscode.ThemeIcon("play-circle", themeColor);
     }

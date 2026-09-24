@@ -2,7 +2,7 @@
   "name": "better-npm-button",
   "displayName": "Better Npm Button",
   "description": "Run package.json scripts from the Activity Bar. Supports pinning, section headers, sort order, and multi-package workspaces.",
-  "version": "0.2.17",
+  "version": "0.2.18",
   "publisher": "romfatal",
   "license": "MIT",
   "preview": false,
@@ -283,6 +283,11 @@
           ],
           "default": "command",
           "markdownDescription": "What to show beside each script name: its info or its command. Info comes from a `\"scripts-info\"` object in `package.json` that maps script names to text, or to an object with a `description` and extra fields such as `env` that the tooltip shows as their own lines (`ntl.descriptions` also works). Scripts without info always show their command, and hovering a script shows both. The Show Script Info / Show Script Commands button in the Scripts view title bar switches between the two."
+        },
+        "runSidebar.showEnvIcons": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show an environment icon for scripts whose `\"scripts-info\"` entry has an `env` field: a red cloud when it mentions prod / production / live, a green computer when it mentions local / localhost / dev / development. It replaces the play icon on that row and appears on the Env line of the tooltip."
         },
         "runSidebar.sortOrder": {
           "type": "string",

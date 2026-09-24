@@ -30,6 +30,7 @@ VS Code already exposes npm scripts in a few places, but the experience is easy 
 - Configurable sort order — original, alphabetical, or alphabetical within each section
 - Pin any script to the top of the list with a hover icon; reorder pins via right-click
 - Shows what each script does, from a `"scripts-info"` block in `package.json` — beside the name and on hover ([details](#script-info))
+- Marks scripts that hit production (red cloud) or a local server (green computer), from an `env` field in `"scripts-info"`
 
 ## Install
 
@@ -93,6 +94,11 @@ What to show in grey beside each script name. See [Script info](#script-info).
 - `info`: the script's info from `"scripts-info"`. A script with no info shows its command instead, so nothing is ever blank.
 
 Either way, hovering a script shows both its info and its command. The button in the Scripts view title bar switches between the two without opening Settings.
+
+### `runSidebar.showEnvIcons`
+
+- `true` (default): scripts whose `env` mentions prod or local get a red cloud or green computer icon. See [Environment icons](#script-info).
+- `false`: they keep the play icon.
 
 ### `runSidebar.sortOrder`
 
@@ -172,6 +178,22 @@ Hovering `release` then shows:
 - Fields appear in the order you write them.
 - Text, number and `true`/`false` values are shown; nested objects and arrays are ignored.
 - Strings and objects can be mixed freely in one `"scripts-info"`.
+
+**Environment icons**
+
+If an entry has an `env` (or `environment`) field, the extension looks for known words in it and marks the script so you can tell at a glance which server it talks to:
+
+| `env` contains | Icon | Color |
+|---|---|---|
+| `prod`, `production` or `live` | cloud | red |
+| `local`, `localhost`, `dev` or `development` | computer | green |
+| anything else | the normal play icon | |
+
+- Words match whole: `"prod server"`, `"Production API"` and `"localhost:3200"` match; `"devops"` doesn't.
+- The icon replaces the play icon on that row, and shows on the **Env:** line of the tooltip.
+- Pinned scripts keep the pin icon.
+- A color you set on the script, or `runSidebar.accentColor`, overrides the red/green.
+- Turn it off with `runSidebar.showEnvIcons`.
 
 **Where it shows**
 
