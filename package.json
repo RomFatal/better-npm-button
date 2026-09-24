@@ -2,7 +2,7 @@
   "name": "better-npm-button",
   "displayName": "Better Npm Button",
   "description": "Run package.json scripts from the Activity Bar. Supports pinning, section headers, sort order, and multi-package workspaces.",
-  "version": "0.2.15",
+  "version": "0.2.16",
   "publisher": "romfatal",
   "license": "MIT",
   "preview": false,
@@ -100,6 +100,16 @@
         "command": "runSidebar.setScriptColor",
         "title": "Run: Set Script Icon Color",
         "icon": "$(symbol-color)"
+      },
+      {
+        "command": "runSidebar.showScriptInfo",
+        "title": "Run: Show Script Info",
+        "icon": "$(info)"
+      },
+      {
+        "command": "runSidebar.showScriptCommands",
+        "title": "Run: Show Script Commands",
+        "icon": "$(terminal)"
       }
     ],
     "viewsContainers": {
@@ -130,6 +140,16 @@
         {
           "command": "runSidebar.rerunLast",
           "when": "view == runSidebar.scripts",
+          "group": "navigation"
+        },
+        {
+          "command": "runSidebar.showScriptInfo",
+          "when": "view == runSidebar.scripts && config.runSidebar.scriptDescription != 'info'",
+          "group": "navigation"
+        },
+        {
+          "command": "runSidebar.showScriptCommands",
+          "when": "view == runSidebar.scripts && config.runSidebar.scriptDescription == 'info'",
           "group": "navigation"
         }
       ],
@@ -254,15 +274,15 @@
         "runSidebar.scriptDescription": {
           "type": "string",
           "enum": [
-            "info",
-            "command"
+            "command",
+            "info"
           ],
           "enumDescriptions": [
-            "Show the script's description from the \"scripts-info\" block in package.json, or its command when it has none.",
-            "Always show the script's command."
+            "Show the script's command (default).",
+            "Show the script's info from the \"scripts-info\" block in package.json. Scripts without info show their command."
           ],
-          "default": "info",
-          "markdownDescription": "What to show beside each script name. Descriptions come from a `\"scripts-info\"` object in `package.json` that maps script names to text (`ntl.descriptions` also works). The description is always shown when hovering a script."
+          "default": "command",
+          "markdownDescription": "What to show beside each script name: its info or its command. Info comes from a `\"scripts-info\"` object in `package.json` that maps script names to text (`ntl.descriptions` also works). Scripts without info always show their command, and hovering a script shows both. The Show Script Info / Show Script Commands button in the Scripts view title bar switches between the two."
         },
         "runSidebar.sortOrder": {
           "type": "string",

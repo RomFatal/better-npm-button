@@ -42,8 +42,25 @@ export function getConfig(): RunSidebarConfig {
     focusTerminal: config.get<boolean>("focusTerminal", true),
     sortOrder: config.get<SortOrder>("sortOrder", "original"),
     accentColor: config.get<ScriptColor>("accentColor", "default"),
-    scriptDescription: config.get<ScriptDescription>("scriptDescription", "info")
+    scriptDescription: config.get<ScriptDescription>("scriptDescription", "command")
   };
+}
+
+/**
+ * Switch what's shown beside script names. Writes to wherever the setting is
+ * already set (folder, workspace, or user), so the sidebar button and the
+ * Settings UI never disagree; a setting set nowhere goes to user settings.
+ */
+export async function setScriptDescription(value: ScriptDescription): Promise<void> {
+  const config = vscode.workspace.getConfiguration(SECTION);
+  const current = config.inspect<ScriptDescription>("scriptDescription");
+  const target =
+    current?.workspaceFolderValue !== undefined
+      ? vscode.ConfigurationTarget.WorkspaceFolder
+      : current?.workspaceValue !== undefined
+        ? vscode.ConfigurationTarget.Workspace
+        : vscode.ConfigurationTarget.Global;
+  await config.update("scriptDescription", value, target);
 }
 
 export function isRunSidebarConfigChange(event: vscode.ConfigurationChangeEvent): boolean {

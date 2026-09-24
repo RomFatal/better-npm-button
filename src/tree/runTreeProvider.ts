@@ -270,9 +270,10 @@ export class ScriptItem extends RunItem {
     const inlineText =
       displayOptions.scriptDescription === "info" && scriptInfo ? scriptInfo : scriptValue;
     this.description = buildScriptDescription(inlineText, displayOptions.uiMode);
-    // The description is plain text from package.json: appendText escapes it.
+    // The info is plain text from package.json: appendText escapes it.
     const tooltip = new vscode.MarkdownString();
     if (scriptInfo) {
+      tooltip.appendMarkdown("**Info:** ");
       tooltip.appendText(scriptInfo);
       tooltip.appendMarkdown("\n\n");
     }

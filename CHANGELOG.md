@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.2.16
+
+- `runSidebar.scriptDescription` now defaults to `command`: the sidebar shows commands unless you switch to info
+- New title-bar button in the Scripts view switches between commands and info (also **Run: Show Script Info** / **Run: Show Script Commands** in the Command Palette); it updates the setting in whichever scope it's already set
+- Hover tooltip labels the script's info (**Info:**) like the other lines
+- README: full Script info section — where it shows for each setting, fallback, monorepos, `ntl` compatibility, length tips
+
 ## 0.2.15
 
 - Shows what each script does: descriptions come from a `"scripts-info"` object in `package.json` (keyed by script name), with `ntl.descriptions` also supported

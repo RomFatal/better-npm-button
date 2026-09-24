@@ -29,7 +29,7 @@ VS Code already exposes npm scripts in a few places, but the experience is easy 
 - Renders `//` comment keys as non-runnable section headers, preserving your groupings
 - Configurable sort order — original, alphabetical, or alphabetical within each section
 - Pin any script to the top of the list with a hover icon; reorder pins via right-click
-- Shows what each script does, from a `"scripts-info"` block in `package.json`
+- Shows what each script does, from a `"scripts-info"` block in `package.json` — beside the name and on hover ([details](#script-info))
 
 ## Install
 
@@ -87,8 +87,12 @@ Use the title bar actions in the view to:
 
 ### `runSidebar.scriptDescription`
 
-- `info`: show the script's description beside its name, or its command when it has no description (default)
-- `command`: always show the command
+What to show in grey beside each script name. See [Script info](#script-info).
+
+- `command` (default): the script's command.
+- `info`: the script's info from `"scripts-info"`. A script with no info shows its command instead, so nothing is ever blank.
+
+Either way, hovering a script shows both its info and its command. The button in the Scripts view title bar switches between the two without opening Settings.
 
 ### `runSidebar.sortOrder`
 
@@ -116,22 +120,44 @@ Script keys that start with `//` are treated as non-runnable section headers. Th
 }
 ```
 
-### Script descriptions
+### Script info
 
-`package.json` can't hold comments, so describe your scripts in a `"scripts-info"` object next to `"scripts"`, keyed by script name. npm ignores it:
+`package.json` has no comments, so there's nowhere to say what a script does. Add a `"scripts-info"` object next to `"scripts"`, keyed by script name, and the sidebar shows each script's info:
 
 ```json
 "scripts": {
   "dev": "vite",
+  "test": "vitest run",
   "release": "bash ./scripts/release.sh"
 },
 "scripts-info": {
   "dev": "Run the app with hot reload.",
+  "test": "Run the unit tests once.",
   "release": "Publish to all users: bump version, build, upload."
 }
 ```
 
-The description replaces the command beside the script name, and appears at the top of its hover tooltip along with the command. Descriptions in `ntl.descriptions` (the format used by `ntl`) are read too; `"scripts-info"` wins when both describe the same script.
+npm, pnpm, yarn and bun all ignore unknown top-level keys, so this changes nothing about how the scripts run.
+
+**Where it shows**
+
+| | `runSidebar.scriptDescription: "command"` (default) | `"info"` |
+|---|---|---|
+| Beside the script name | the command | the info, or the command if the script has none |
+| Hover tooltip | **Info**, then Script, Command, Package | the same |
+
+**Switching:** click the button in the Scripts view title bar. While commands are shown it is an info icon (**Show Script Info**); while info is shown it is a terminal icon (**Show Script Commands**). It changes `runSidebar.scriptDescription` wherever that setting is already set (folder, workspace or user; user settings if it's set nowhere), so the button and the Settings page always agree. Both are also in the Command Palette as **Run: Show Script Info** and **Run: Show Script Commands**.
+
+In `button` UI mode the text beside the name is shortened to one line; the tooltip always has the full text.
+
+**Details**
+
+- **Only string values count.** Keys that aren't script names are ignored, and a script missing from `"scripts-info"` falls back to its command.
+- **Monorepos:** each `package.json` has its own `"scripts-info"`; with `runSidebar.scope` set to `all`, every package shows its own.
+- **`ntl` compatibility:** descriptions in `"ntl": { "descriptions": { ... } }` (the format used by the `ntl` CLI) are read too. If both describe the same script, `"scripts-info"` wins.
+- **Live updates:** editing `package.json` refreshes the sidebar immediately, like any script change.
+- **Keep it short.** The sidebar is narrow: about 50 characters fits on one line. Longer text is cut off beside the name but shown in full on hover.
+- **Section headers** (`//` keys) don't take info.
 
 ## Behavior Notes
 

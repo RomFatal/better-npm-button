@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { ScriptColor, getConfig, isRunSidebarConfigChange } from "./config";
+import { ScriptColor, getConfig, isRunSidebarConfigChange, setScriptDescription } from "./config";
 import { PackageDiscoveryService } from "./services/packageDiscoveryService";
 import { PackageManagerService } from "./services/packageManagerService";
 import { PinnedScriptsService } from "./services/pinnedScriptsService";
@@ -95,6 +95,14 @@ export function activate(context: vscode.ExtensionContext): void {
     packageWatcher.onDidCreate(() => treeProvider.refresh()),
     packageWatcher.onDidChange(() => treeProvider.refresh()),
     packageWatcher.onDidDelete(() => treeProvider.refresh())
+  );
+  // Sidebar title-bar toggle between each script's command and its
+  // "scripts-info" text. Only one of the two buttons shows at a time.
+  context.subscriptions.push(
+    vscode.commands.registerCommand("runSidebar.showScriptInfo", () => setScriptDescription("info")),
+    vscode.commands.registerCommand("runSidebar.showScriptCommands", () =>
+      setScriptDescription("command")
+    )
   );
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((event) => {
