@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.2.17
+
+- `"scripts-info"` entries can be objects: `description` plus any extra fields (e.g. `"env": "prod server"`), each shown as its own labelled line in the hover tooltip (**Env:**). Plain string entries work as before
+- Field names become readable labels (`requiresDocker` → **Requires docker**); nested values are ignored
+- README: object form, labels, fallback rules
+
 ## 0.2.16
 
 - `runSidebar.scriptDescription` now defaults to `command`: the sidebar shows commands unless you switch to info

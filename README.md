@@ -139,12 +139,46 @@ Script keys that start with `//` are treated as non-runnable section headers. Th
 
 npm, pnpm, yarn and bun all ignore unknown top-level keys, so this changes nothing about how the scripts run.
 
+**Extra details: the object form**
+
+An entry can also be an object. `description` is the main text; every other field becomes its own labelled line in the tooltip, so details like which server a script talks to don't clutter the description:
+
+```json
+"scripts-info": {
+  "lint": "Check code style with ESLint.",
+  "dev": {
+    "description": "Run the app with hot reload.",
+    "env": "local server"
+  },
+  "release": {
+    "description": "Publish to all users: bump version, build, upload.",
+    "env": "prod server",
+    "warning": "Ships to every user"
+  }
+}
+```
+
+Hovering `release` then shows:
+
+> **Info:** Publish to all users: bump version, build, upload.
+>
+> **Env:** prod server
+>
+> **Warning:** Ships to every user
+>
+> **Script:** `release` · **Command:** `bash ./scripts/release.sh` · **Package:** …
+
+- Field names become labels: `env` → **Env**, `requiresDocker` or `requires_docker` → **Requires docker**. Use any names you like.
+- Fields appear in the order you write them.
+- Text, number and `true`/`false` values are shown; nested objects and arrays are ignored.
+- Strings and objects can be mixed freely in one `"scripts-info"`.
+
 **Where it shows**
 
 | | `runSidebar.scriptDescription: "command"` (default) | `"info"` |
 |---|---|---|
-| Beside the script name | the command | the info, or the command if the script has none |
-| Hover tooltip | **Info**, then Script, Command, Package | the same |
+| Beside the script name | the command | the `description`, or the command if the script has none |
+| Hover tooltip | **Info**, one line per extra field (e.g. **Env**), then Script, Command, Package | the same |
 
 **Switching:** click the button in the Scripts view title bar. While commands are shown it is an info icon (**Show Script Info**); while info is shown it is a terminal icon (**Show Script Commands**). It changes `runSidebar.scriptDescription` wherever that setting is already set (folder, workspace or user; user settings if it's set nowhere), so the button and the Settings page always agree. Both are also in the Command Palette as **Run: Show Script Info** and **Run: Show Script Commands**.
 
@@ -152,9 +186,10 @@ In `button` UI mode the text beside the name is shortened to one line; the toolt
 
 **Details**
 
-- **Only string values count.** Keys that aren't script names are ignored, and a script missing from `"scripts-info"` falls back to its command.
+- **Fallback:** a script missing from `"scripts-info"`, or an object entry without a `description`, shows its command beside the name. Entries whose key isn't a script name are ignored.
 - **Monorepos:** each `package.json` has its own `"scripts-info"`; with `runSidebar.scope` set to `all`, every package shows its own.
 - **`ntl` compatibility:** descriptions in `"ntl": { "descriptions": { ... } }` (the format used by the `ntl` CLI) are read too. If both describe the same script, `"scripts-info"` wins.
+- **Terminal tools:** other tools that read `"scripts-info"` may expect plain strings only; if you use one, keep the entries it needs as strings.
 - **Live updates:** editing `package.json` refreshes the sidebar immediately, like any script change.
 - **Keep it short.** The sidebar is narrow: about 50 characters fits on one line. Longer text is cut off beside the name but shown in full on hover.
 - **Section headers** (`//` keys) don't take info.

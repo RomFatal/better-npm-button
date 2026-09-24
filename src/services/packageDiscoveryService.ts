@@ -10,8 +10,19 @@ export interface PackageScriptFile {
   displayName: string;
   relativeDirectory: string;
   scripts: Record<string, string>;
-  /** Human descriptions keyed by script name, from "scripts-info" (or ntl.descriptions). */
-  scriptDescriptions: Record<string, string>;
+  /** What each script does, keyed by script name, from "scripts-info" (or ntl.descriptions). */
+  scriptInfo: Record<string, ScriptInfo>;
+}
+
+/**
+ * One "scripts-info" entry. Written either as a plain string (the description)
+ * or as an object: `description` plus any other fields, which the tooltip
+ * shows as labelled lines — e.g. { "description": "…", "env": "prod server" }.
+ */
+export interface ScriptInfo {
+  description?: string;
+  /** Extra fields in package.json order, as [label, value]: [["Env", "prod server"]]. */
+  details: Array<[string, string]>;
 }
 
 interface PackageJsonShape {
@@ -66,9 +77,9 @@ export class PackageDiscoveryService {
       const packageDir = vscode.Uri.joinPath(packageJsonUri, "..");
       const relativeDirectory = path.posix.relative(workspaceFolder.uri.path, packageDir.path) || ".";
       const scripts = normalizeScripts(packageJson.scripts);
-      const scriptDescriptions = {
-        ...normalizeScripts(packageJson.ntl?.descriptions),
-        ...normalizeScripts(packageJson["scripts-info"])
+      const scriptInfo = {
+        ...parseScriptInfo(packageJson.ntl?.descriptions),
+        ...parseScriptInfo(packageJson["scripts-info"])
       };
 
       return {
@@ -79,12 +90,57 @@ export class PackageDiscoveryService {
         displayName: buildDisplayName(workspaceFolder, relativeDirectory, packageJson.name),
         relativeDirectory,
         scripts,
-        scriptDescriptions
+        scriptInfo
       };
     } catch {
       return undefined;
     }
   }
+}
+
+function parseScriptInfo(raw: Record<string, unknown> | undefined): Record<string, ScriptInfo> {
+  const parsed: Record<string, ScriptInfo> = {};
+
+  if (!raw || typeof raw !== "object") {
+    return parsed;
+  }
+
+  for (const [scriptName, value] of Object.entries(raw)) {
+    if (typeof value === "string") {
+      parsed[scriptName] = { description: value, details: [] };
+      continue;
+    }
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      continue;
+    }
+
+    const info: ScriptInfo = { details: [] };
+    for (const [key, field] of Object.entries(value as Record<string, unknown>)) {
+      if (typeof field !== "string" && typeof field !== "number" && typeof field !== "boolean") {
+        continue;
+      }
+      if (key === "description" && typeof field === "string") {
+        info.description = field;
+      } else {
+        info.details.push([toLabel(key), String(field)]);
+      }
+    }
+    if (info.description !== undefined || info.details.length > 0) {
+      parsed[scriptName] = info;
+    }
+  }
+
+  return parsed;
+}
+
+/** "env" → "Env", "requiresDocker" / "requires_docker" → "Requires docker". */
+function toLabel(key: string): string {
+  const words = key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 /** Keeps the string entries of a name → text map; anything else is ignored. */

@@ -253,7 +253,7 @@ export class ScriptItem extends RunItem {
     this.scriptName = scriptName;
 
     const scriptValue = packageFile.scripts[scriptName];
-    const scriptInfo = packageFile.scriptDescriptions[scriptName];
+    const scriptInfo = packageFile.scriptInfo[scriptName];
 
     this.command = {
       command: "runSidebar.runScript",
@@ -268,13 +268,23 @@ export class ScriptItem extends RunItem {
     // Grey text beside the name: the script's "scripts-info" description when
     // it has one (and the setting allows), otherwise the command itself.
     const inlineText =
-      displayOptions.scriptDescription === "info" && scriptInfo ? scriptInfo : scriptValue;
+      displayOptions.scriptDescription === "info" && scriptInfo?.description
+        ? scriptInfo.description
+        : scriptValue;
     this.description = buildScriptDescription(inlineText, displayOptions.uiMode);
-    // The info is plain text from package.json: appendText escapes it.
+    // Info and its detail fields are plain text from package.json:
+    // appendText escapes them. Each goes on its own line, before the
+    // Script / Command / Package lines.
     const tooltip = new vscode.MarkdownString();
-    if (scriptInfo) {
-      tooltip.appendMarkdown("**Info:** ");
-      tooltip.appendText(scriptInfo);
+    const infoLines: Array<[string, string]> = [
+      ...(scriptInfo?.description ? [["Info", scriptInfo.description] as [string, string]] : []),
+      ...(scriptInfo?.details ?? [])
+    ];
+    for (const [label, text] of infoLines) {
+      tooltip.appendMarkdown("**");
+      tooltip.appendText(`${label}:`);
+      tooltip.appendMarkdown("** ");
+      tooltip.appendText(text);
       tooltip.appendMarkdown("\n\n");
     }
     tooltip.appendMarkdown(
