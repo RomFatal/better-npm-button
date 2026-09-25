@@ -4,6 +4,7 @@ import { PackageScriptFile, ScriptInfo } from "../services/packageDiscoveryServi
 import { PinnedScriptsService } from "../services/pinnedScriptsService";
 import { ScriptColorService } from "../services/scriptColorService";
 import { RunState, RunStateService, formatDuration } from "../services/runStateService";
+import { OrderService } from "../services/orderService";
 
 export interface ScriptRunItem {
   packageFile: PackageScriptFile;
@@ -42,7 +43,8 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
     private readonly pinnedService: PinnedScriptsService,
     private readonly colorService: ScriptColorService,
     private readonly runState: RunStateService,
-    private readonly collapsed: CollapseStore
+    private readonly collapsed: CollapseStore,
+    private readonly order: OrderService
   ) {}
 
   public refresh(): void {
@@ -143,9 +145,14 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       if (pinned.length === 0) {
         return [new MessageItem(NO_PINS_MESSAGE)];
       }
-      return pinned.map(
-        (name, i) =>
-          new ScriptItem(packageFile, name, displayOptions, pinnedPositionFor(i, pinned.length))
+      return this.arrange(
+        `${packageUri}|pinned`,
+        pinned.map(
+          (name, i) =>
+            new ScriptItem(packageFile, name, displayOptions, pinnedPositionFor(i, pinned.length))
+        ),
+        packageUri,
+        false
       );
     }
 
@@ -157,19 +164,33 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       // One id for both views, so Pinned stays folded when switching.
       const pinnedGroup = this.group(`${packageUri}|pinned`, "pinned", "Pinned", "pinned");
       pinnedGroup.contextValue = "pinnedGroup";
-      pinnedGroup.sectionChildren.push(
-        ...pinned.map(
+      pinnedGroup.isPinnedGroup = true;
+      pinnedGroup.packageUri = packageUri;
+      // Pinned order is the pin list itself, not a custom order.
+      pinnedGroup.sectionChildren = this.arrange(
+        `${packageUri}|pinned`,
+        pinned.map(
           (name, i) =>
             new ScriptItem(packageFile, name, displayOptions, pinnedPositionFor(i, pinned.length))
-        )
+        ),
+        packageUri,
+        false
       );
       items.push(pinnedGroup);
     }
 
     if (displayOptions.groupBy === "stage") {
-      items.push(...this.groupByStage(packageFile, rest, displayOptions));
+      items.push(
+        ...this.arrange(
+          `${packageUri}|stage|top`,
+          this.groupByStage(packageFile, rest, displayOptions),
+          packageUri
+        )
+      );
       return items;
     }
+
+    const top: RunItem[] = [];
 
     let currentGroup: SectionGroupItem | null = null;
     const seen = new Map<string, number>();
@@ -185,18 +206,44 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
           formatSectionLabel(name),
           "list-unordered"
         );
-        items.push(currentGroup);
+        top.push(currentGroup);
       } else {
         const scriptItem = new ScriptItem(packageFile, name, displayOptions, null);
         if (currentGroup) {
           currentGroup.sectionChildren.push(scriptItem);
         } else {
-          items.push(scriptItem);
+          top.push(scriptItem);
         }
       }
     }
 
+    items.push(...this.arrange(`${packageUri}|section|top`, top, packageUri));
     return items;
+  }
+
+  /**
+   * Puts `items` in the user's dragged order for `containerId` (unless
+   * `useSavedOrder` is false, as for Pinned), does the same inside every
+   * group, and records on each item where it sits, which drag and drop
+   * reads to know what can move where.
+   */
+  private arrange<T extends RunItem>(
+    containerId: string,
+    items: T[],
+    packageUri: string,
+    useSavedOrder = true
+  ): T[] {
+    const ordered = useSavedOrder ? this.order.apply(containerId, items) : items;
+    const keys = ordered.map((item) => item.orderKey ?? "");
+    for (const item of ordered) {
+      item.containerId = containerId;
+      item.siblingKeys = keys;
+      item.packageUri = packageUri;
+      if (item instanceof SectionGroupItem && item.id && !item.isPinnedGroup) {
+        item.sectionChildren = this.arrange(item.id, item.sectionChildren, packageUri);
+      }
+    }
+    return ordered;
   }
 
   /**
@@ -207,6 +254,7 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
   private group(id: string, rawKey: string, label: string, icon: string): SectionGroupItem {
     const item = new SectionGroupItem(rawKey, label, icon);
     item.id = id;
+    item.orderKey = `g:${id}`;
     item.collapsibleState = this.stateFor(id);
     return item;
   }
@@ -407,7 +455,16 @@ function orderScriptNames(scriptNames: string[], sortOrder: SortOrder): string[]
 
 type PinnedPosition = "first" | "middle" | "last" | "only";
 
-export abstract class RunItem extends vscode.TreeItem {}
+export abstract class RunItem extends vscode.TreeItem {
+  /** Identity within its list for the saved order: "s:<script>" or "g:<group id>". */
+  public orderKey?: string;
+  /** The list it sits in (a package's top level, a group, or Pinned). */
+  public containerId?: string;
+  /** Keys of that list, in display order. */
+  public siblingKeys?: string[];
+  /** package.json path of the package it belongs to. */
+  public packageUri?: string;
+}
 
 class PackageItem extends RunItem {
   public constructor(public readonly packageFile: PackageScriptFile) {
@@ -427,6 +484,7 @@ class PackageItem extends RunItem {
 export class ScriptItem extends RunItem {
   public readonly packageFile: PackageScriptFile;
   public readonly scriptName: string;
+  public readonly isPinned: boolean;
 
   public constructor(
     packageFile: PackageScriptFile,
@@ -437,6 +495,8 @@ export class ScriptItem extends RunItem {
     super(buildScriptLabel(scriptName, displayOptions.uiMode), vscode.TreeItemCollapsibleState.None);
     this.packageFile = packageFile;
     this.scriptName = scriptName;
+    this.orderKey = `s:${scriptName}`;
+    this.isPinned = pinnedPosition !== null;
 
     const scriptValue = packageFile.scripts[scriptName];
     const scriptInfo = packageFile.scriptInfo[scriptName];
@@ -527,8 +587,9 @@ class MessageItem extends RunItem {
  * A collapsible group of scripts: Pinned, a // section, or a stage. Every
  * group has an icon so group rows line up with each other.
  */
-class SectionGroupItem extends RunItem {
-  public readonly sectionChildren: ScriptItem[] = [];
+export class SectionGroupItem extends RunItem {
+  public sectionChildren: ScriptItem[] = [];
+  public isPinnedGroup = false;
 
   public constructor(rawKey: string, label = formatSectionLabel(rawKey), icon = "list-unordered") {
     super(label, vscode.TreeItemCollapsibleState.Expanded);

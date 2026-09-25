@@ -10,6 +10,8 @@ import { ScriptsInfoValidator, isPackageJson } from "./services/scriptsInfoValid
 import { ScriptRunRequest, TerminalService } from "./services/terminalService";
 import { RunItem, RunTreeProvider, ScriptItem, ScriptRunItem } from "./tree/runTreeProvider";
 import { CollapseStateService } from "./services/collapseStateService";
+import { OrderService } from "./services/orderService";
+import { ScriptsDragAndDrop } from "./tree/dragAndDrop";
 
 export function activate(context: vscode.ExtensionContext): void {
   const packageDiscoveryService = new PackageDiscoveryService();
@@ -20,12 +22,14 @@ export function activate(context: vscode.ExtensionContext): void {
   const terminalService = new TerminalService(runState);
   const validator = new ScriptsInfoValidator();
   const collapseStore = new CollapseStateService(context.workspaceState);
+  const orderService = new OrderService(context.workspaceState);
   const treeProvider = new RunTreeProvider(
     (scope) => packageDiscoveryService.listPackages(scope),
     pinnedService,
     colorService,
     runState,
-    collapseStore
+    collapseStore,
+    orderService
   );
 
   // The last script run from the sidebar, so Rerun Last goes through the
@@ -49,7 +53,10 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(runState.onDidChange(() => treeProvider.refresh()));
   // createTreeView (not registerTreeDataProvider) to hear collapse/expand,
   // which is saved per workspace and read back when the tree is rebuilt.
-  const treeView = vscode.window.createTreeView("runSidebar.scripts", { treeDataProvider: treeProvider });
+  const treeView = vscode.window.createTreeView("runSidebar.scripts", {
+    treeDataProvider: treeProvider,
+    dragAndDropController: new ScriptsDragAndDrop(orderService, pinnedService, () => treeProvider.refresh())
+  });
   const rememberCollapsed = (element: RunItem, collapsed: boolean): void => {
     if (element.id) {
       void collapseStore.set(element.id, collapsed);
@@ -172,6 +179,19 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     vscode.commands.registerCommand("runSidebar.showPinnedOnly", () => setPinnedOnly(true)),
     vscode.commands.registerCommand("runSidebar.showAllScripts", () => setPinnedOnly(false))
+  );
+  context.subscriptions.push(
+    vscode.commands.registerCommand("runSidebar.resetOrder", async () => {
+      const answer = await vscode.window.showWarningMessage(
+        "Reset the order of scripts and groups to package.json's order?",
+        { modal: true, detail: "Only the order you set by dragging is cleared. Pinned scripts stay pinned." },
+        "Reset"
+      );
+      if (answer === "Reset") {
+        await orderService.clearAll();
+        treeProvider.refresh();
+      }
+    })
   );
   context.subscriptions.push(
     vscode.commands.registerCommand("runSidebar.groupByStage", () => setGroupBy("stage")),

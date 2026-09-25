@@ -56,6 +56,18 @@ export class PinnedScriptsService {
     void this.state.update(STORAGE_KEY, entries);
   }
 
+  /**
+   * Sets one package's pinned scripts to exactly `scriptNames`, in that
+   * order (drag and drop). Other packages' pins are left as they are.
+   */
+  public setPinnedFor(packageJsonUri: string, scriptNames: string[]): Thenable<void> {
+    const others = this.getAll().filter((e) => e.packageJsonUri !== packageJsonUri);
+    return this.state.update(STORAGE_KEY, [
+      ...others,
+      ...scriptNames.map((scriptName) => ({ scriptName, packageJsonUri }))
+    ]);
+  }
+
   public pinnedNamesFor(packageJsonUri: string): string[] {
     return this.getAll()
       .filter((e) => e.packageJsonUri === packageJsonUri)

@@ -28,7 +28,9 @@ VS Code already exposes npm scripts in a few places, but the experience is easy 
 - Supports rerunning the last script from the view title
 - Renders `//` comment keys as non-runnable section headers, preserving your groupings
 - Configurable sort order — original, alphabetical, or alphabetical within each section
-- Pin any script into a collapsible **Pinned** group at the top with a hover icon; reorder pins via right-click; filter the list to pinned scripts only
+- Pin any script into a collapsible **Pinned** group at the top with a hover icon or by dragging; filter the list to pinned scripts only
+- Drag scripts and groups into your own order, remembered per workspace ([details](#drag-to-reorder))
+- Collapsed groups stay collapsed across rebuilds and restarts
 - Shows what each script does, from a `"scripts-info"` block in `package.json` — beside the name and on hover ([details](#script-info))
 - Marks scripts that hit production (red cloud) or a local server (green computer), from an `env` field in `"scripts-info"`
 - Shows which scripts are running (spinning icon) and how the last run ended — ✓ / ✗ and how long it took ([details](#run-status))
@@ -61,6 +63,7 @@ Use the title bar actions in the view to:
 - switch between showing commands and script info
 - switch between grouping by section and by stage
 - show only pinned scripts (filter icon), and back to all scripts
+- reset the order you set by dragging (**…** menu → **Reset Script Order**)
 
 Right-click a script to:
 
@@ -141,11 +144,28 @@ Hover any script to reveal a pin icon on the right. Click it to move the script 
 
 **Pinned** is a collapsible group like the section and stage groups: click its arrow to fold it away. It stays at the top whichever way the list is grouped.
 
+### Drag to reorder
+
+Drag scripts and groups to put them in the order you want. The order is remembered per workspace, including after VS Code restarts; `package.json` is never changed.
+
+| Drag | Result |
+|---|---|
+| a script onto another script in the same group | it takes that script's place |
+| a group onto another group | it takes that group's place (works for `//` sections and stages, each remembered separately) |
+| a script above all groups onto a group, or the other way round | they swap places at the top level |
+| a script onto **Pinned** or onto a pinned script | it's pinned, at that spot |
+| a pinned script onto another pinned script | Pinned is reordered |
+| a pinned script onto anything outside Pinned | it's unpinned |
+
+A script can't be dragged into a *different* section or stage group: which group it's in comes from `package.json` (its `//` section or its `stage` field), so edit that to move it. The status bar says so if you try. Scripts can't move between packages either.
+
+New scripts appear after the ones you've arranged. To go back to `package.json`'s order, choose **Reset Script Order** from the **…** menu in the Scripts view title bar (pins are kept).
+
 ### Folded groups stay folded
 
 Groups and packages you collapse stay collapsed when the list is rebuilt — switching between section and stage grouping, turning the pinned filter on or off, or editing `package.json` — and after VS Code restarts. **Pinned** shares one state across both groupings; section groups and stage groups each remember their own. Stored per workspace.
 
-To reorder pinned scripts, right-click a pinned script and choose **Move Up** or **Move Down**. To unpin, hover the script and click the thumbtack icon, or use the right-click menu.
+To reorder pinned scripts, drag them, or right-click a pinned script and choose **Move Up** or **Move Down**. Dragging a script onto **Pinned** pins it; dragging a pinned script out unpins it. To unpin, hover the script and click the thumbtack icon, or use the right-click menu.
 
 ### Show only pinned
 

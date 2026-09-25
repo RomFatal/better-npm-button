@@ -140,6 +140,11 @@
         "command": "runSidebar.showAllScripts",
         "title": "Run: Show All Scripts",
         "icon": "$(filter-filled)"
+      },
+      {
+        "command": "runSidebar.resetOrder",
+        "title": "Run: Reset Script Order",
+        "icon": "$(discard)"
       }
     ],
     "viewsContainers": {
@@ -201,6 +206,11 @@
           "command": "runSidebar.showAllScripts",
           "when": "view == runSidebar.scripts && runSidebar.pinnedOnly",
           "group": "navigation"
+        },
+        {
+          "command": "runSidebar.resetOrder",
+          "when": "view == runSidebar.scripts",
+          "group": "9_order"
         }
       ],
       "view/item/context": [
