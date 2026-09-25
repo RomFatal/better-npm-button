@@ -146,6 +146,20 @@ export function activate(context: vscode.ExtensionContext): void {
   );
   // Sidebar title-bar toggle between each script's command and its
   // "scripts-info" text. Only one of the two buttons shows at a time.
+  // Show Only Pinned: a per-workspace filter, not a setting. The context key
+  // decides which of the two title-bar buttons shows.
+  const PINNED_ONLY_KEY = "runSidebar.pinnedOnly";
+  const setPinnedOnly = async (value: boolean): Promise<void> => {
+    treeProvider.pinnedOnly = value;
+    await context.workspaceState.update(PINNED_ONLY_KEY, value);
+    await vscode.commands.executeCommand("setContext", PINNED_ONLY_KEY, value);
+    treeProvider.refresh();
+  };
+  void setPinnedOnly(context.workspaceState.get<boolean>(PINNED_ONLY_KEY, false));
+  context.subscriptions.push(
+    vscode.commands.registerCommand("runSidebar.showPinnedOnly", () => setPinnedOnly(true)),
+    vscode.commands.registerCommand("runSidebar.showAllScripts", () => setPinnedOnly(false))
+  );
   context.subscriptions.push(
     vscode.commands.registerCommand("runSidebar.groupByStage", () => setGroupBy("stage")),
     vscode.commands.registerCommand("runSidebar.groupBySection", () => setGroupBy("section"))

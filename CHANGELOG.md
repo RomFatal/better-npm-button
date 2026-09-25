@@ -7,6 +7,8 @@
 - **Confirm before running:** `"confirm": true` or a warning message in `"scripts-info"`; applies to click, Rerun Last and Run with Arguments. Off unless you add it
 - **Run with Arguments…** in the script's right-click menu, remembering the last arguments per script
 - **Open in package.json** in the script's right-click menu
+- **Show only pinned:** a title-bar filter that shows just your pinned scripts (and only packages that have some); remembered per workspace
+- Toggle buttons explain how to recover if VS Code hasn't loaded a new version's settings yet, instead of failing with VS Code's raw error
 - **Checking scripts-info:** Problems-panel warnings for info about missing scripts and notes for scripts without info, with a quick fix. Setting: `runSidebar.validateScriptsInfo`
 
 ## 0.2.18

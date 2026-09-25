@@ -130,6 +130,16 @@
         "command": "runSidebar.groupBySection",
         "title": "Run: Group by Section",
         "icon": "$(list-tree)"
+      },
+      {
+        "command": "runSidebar.showPinnedOnly",
+        "title": "Run: Show Only Pinned Scripts",
+        "icon": "$(filter)"
+      },
+      {
+        "command": "runSidebar.showAllScripts",
+        "title": "Run: Show All Scripts",
+        "icon": "$(filter-filled)"
       }
     ],
     "viewsContainers": {
@@ -180,6 +190,16 @@
         {
           "command": "runSidebar.groupBySection",
           "when": "view == runSidebar.scripts && config.runSidebar.groupBy == 'stage'",
+          "group": "navigation"
+        },
+        {
+          "command": "runSidebar.showPinnedOnly",
+          "when": "view == runSidebar.scripts && !runSidebar.pinnedOnly",
+          "group": "navigation"
+        },
+        {
+          "command": "runSidebar.showAllScripts",
+          "when": "view == runSidebar.scripts && runSidebar.pinnedOnly",
           "group": "navigation"
         }
       ],

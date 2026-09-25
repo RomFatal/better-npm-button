@@ -28,7 +28,7 @@ VS Code already exposes npm scripts in a few places, but the experience is easy 
 - Supports rerunning the last script from the view title
 - Renders `//` comment keys as non-runnable section headers, preserving your groupings
 - Configurable sort order — original, alphabetical, or alphabetical within each section
-- Pin any script to the top of the list with a hover icon; reorder pins via right-click
+- Pin any script to the top of the list with a hover icon; reorder pins via right-click; filter the list to pinned scripts only
 - Shows what each script does, from a `"scripts-info"` block in `package.json` — beside the name and on hover ([details](#script-info))
 - Marks scripts that hit production (red cloud) or a local server (green computer), from an `env` field in `"scripts-info"`
 - Shows which scripts are running (spinning icon) and how the last run ended — ✓ / ✗ and how long it took ([details](#run-status))
@@ -60,6 +60,7 @@ Use the title bar actions in the view to:
 - rerun the last executed script (with the same arguments, asking again if it's marked `confirm`)
 - switch between showing commands and script info
 - switch between grouping by section and by stage
+- show only pinned scripts (filter icon), and back to all scripts
 
 Right-click a script to:
 
@@ -139,6 +140,13 @@ Either way, hovering a script shows both its info and its command. The button in
 Hover any script to reveal a pin icon on the right. Click it to move the script to a **Pinned** section at the top of the list. Pinned scripts show a thumbtack icon and persist across restarts.
 
 To reorder pinned scripts, right-click a pinned script and choose **Move Up** or **Move Down**. To unpin, hover the script and click the thumbtack icon, or use the right-click menu.
+
+### Show only pinned
+
+Click the filter icon in the Scripts view title bar to show just your pinned scripts, in their pinned order; click it again (filled icon) to show everything. Pinning, unpinning and reordering work the same while filtered.
+
+- With several packages (`runSidebar.scope`: `all`), only packages that have pinned scripts are listed.
+- The filter is remembered per workspace. It isn't a setting, so it doesn't follow you to other projects.
 
 ### Section headers
 

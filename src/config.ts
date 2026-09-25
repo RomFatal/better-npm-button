@@ -78,7 +78,15 @@ async function updateInCurrentScope(key: string, value: unknown): Promise<void> 
       : current?.workspaceValue !== undefined
         ? vscode.ConfigurationTarget.Workspace
         : vscode.ConfigurationTarget.Global;
-  await config.update(key, value, target);
+  try {
+    await config.update(key, value, target);
+  } catch {
+    // Seen right after an in-place update: the window still has the old
+    // version's list of settings while running the new code.
+    void vscode.window.showErrorMessage(
+      `Couldn't change runSidebar.${key}: VS Code hasn't loaded this version's settings yet. Quit and reopen VS Code, then try again.`
+    );
+  }
 }
 
 export function isRunSidebarConfigChange(event: vscode.ConfigurationChangeEvent): boolean {

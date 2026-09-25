@@ -29,6 +29,9 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
 
   public readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
 
+  /** "Show Only Pinned" filter from the title bar: the list shows pinned scripts only. */
+  public pinnedOnly = false;
+
   public constructor(
     private readonly loadPackages: (scope: RunScope) => Promise<PackageScriptFile[]>,
     private readonly pinnedService: PinnedScriptsService,
@@ -104,6 +107,15 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       return [new MessageItem("No package.json files found in this workspace.")];
     }
 
+    if (this.pinnedOnly) {
+      const withPins = packages.filter(
+        (packageFile) => this.pinnedNames(packageFile).length > 0
+      );
+      return withPins.length > 0
+        ? withPins.map((packageFile) => new PackageItem(packageFile))
+        : [new MessageItem(NO_PINS_MESSAGE)];
+    }
+
     return packages.map((packageFile) => new PackageItem(packageFile));
   }
 
@@ -120,14 +132,25 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
     const packageUri = packageFile.packageJsonUri.fsPath;
     const { pinned, rest } = partitionByPinned(allNames, packageUri, this.pinnedService);
 
+    // Show Only Pinned: just the pinned scripts, in their pinned order.
+    if (this.pinnedOnly) {
+      if (pinned.length === 0) {
+        return [new MessageItem(NO_PINS_MESSAGE)];
+      }
+      return pinned.map(
+        (name, i) =>
+          new ScriptItem(packageFile, name, displayOptions, pinnedPositionFor(i, pinned.length))
+      );
+    }
+
     const items: RunItem[] = [];
 
     if (pinned.length > 0) {
       items.push(new PinnedHeaderItem());
       for (let i = 0; i < pinned.length; i++) {
-        const position: PinnedPosition =
-          pinned.length === 1 ? "only" : i === 0 ? "first" : i === pinned.length - 1 ? "last" : "middle";
-        items.push(new ScriptItem(packageFile, pinned[i], displayOptions, position));
+        items.push(
+          new ScriptItem(packageFile, pinned[i], displayOptions, pinnedPositionFor(i, pinned.length))
+        );
       }
     }
 
@@ -153,6 +176,11 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
     }
 
     return items;
+  }
+
+  private pinnedNames(packageFile: PackageScriptFile): string[] {
+    const names = Object.keys(packageFile.scripts);
+    return partitionByPinned(names, packageFile.packageJsonUri.fsPath, this.pinnedService).pinned;
   }
 
   /**
@@ -198,6 +226,15 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
     }
     return result;
   }
+}
+
+const NO_PINS_MESSAGE = "No pinned scripts. Hover a script and click the pin to add one.";
+
+function pinnedPositionFor(index: number, count: number): PinnedPosition {
+  if (count === 1) {
+    return "only";
+  }
+  return index === 0 ? "first" : index === count - 1 ? "last" : "middle";
 }
 
 function capitalize(value: string): string {
