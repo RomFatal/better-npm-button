@@ -2,7 +2,7 @@
   "name": "better-npm-button",
   "displayName": "Better Npm Button",
   "description": "Run package.json scripts from the Activity Bar: see what each script does, which server it hits and whether it's running, group scripts by stage, pin favorites, and confirm risky ones.",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "publisher": "romfatal",
   "license": "MIT",
   "preview": false,
@@ -43,6 +43,7 @@
     "media/run-view-screenshot.png",
     "resources",
     "LICENSE",
+    "docs/SCRIPTS_INFO_AI_GUIDE.md",
     "README.md",
     "CHANGELOG.md",
     "package.json"
@@ -145,6 +146,11 @@
         "command": "runSidebar.resetOrder",
         "title": "Run: Reset Script Order",
         "icon": "$(discard)"
+      },
+      {
+        "command": "runSidebar.copyAiInstructions",
+        "title": "Run: Copy scripts-info Instructions for AI",
+        "icon": "$(sparkle)"
       }
     ],
     "viewsContainers": {
@@ -211,6 +217,11 @@
           "command": "runSidebar.resetOrder",
           "when": "view == runSidebar.scripts",
           "group": "9_order"
+        },
+        {
+          "command": "runSidebar.copyAiInstructions",
+          "when": "view == runSidebar.scripts",
+          "group": "8_help"
         }
       ],
       "view/item/context": [

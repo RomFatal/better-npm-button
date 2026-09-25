@@ -38,6 +38,7 @@ VS Code already exposes npm scripts in a few places, but the experience is easy 
 - Asks before running scripts you mark with `confirm`, such as a release ([details](#confirm-before-running))
 - Right-click a script to **Run with Arguments…** or **Open in package.json**
 - Checks `"scripts-info"` against your scripts in the Problems panel, with a quick fix for missing entries ([details](#checking-scripts-info))
+- One command copies instructions for an AI assistant to write `"scripts-info"` for your project ([details](#let-an-ai-write-it))
 
 ## Install
 
@@ -64,6 +65,7 @@ Use the title bar actions in the view to:
 - switch between grouping by section and by stage
 - show only pinned scripts (filter icon), and back to all scripts
 - reset the order you set by dragging (**…** menu → **Reset Script Order**)
+- copy the instructions for an AI to write your `"scripts-info"` (**…** menu → **Copy scripts-info Instructions for AI**)
 
 Right-click a script to:
 
@@ -350,6 +352,16 @@ In a `package.json` that has a `"scripts-info"` block, open the file and the Pro
 - a **note** on each script without info, with a quick fix (lightbulb, or `Cmd+.` / `Ctrl+.`) that adds an empty entry to fill in
 
 `//` section headers are never expected to have info, and projects without `"scripts-info"` see nothing. Turn it off with `runSidebar.validateScriptsInfo`.
+
+### Let an AI write it
+
+Describing every script by hand is tedious. The extension ships a guide written for AI assistants: the format, rules for each field, how to find out which server a script really talks to, and full examples.
+
+1. In the Scripts view, open the **…** menu and choose **Copy scripts-info Instructions for AI** (or run it from the Command Palette).
+2. Paste into your AI chat (Claude, Copilot Chat, Cursor…) in the project, and ask it to *add scripts-info to this project*.
+3. Review what it wrote. The Problems panel flags any script it missed.
+
+The same guide is in the repository at [`docs/SCRIPTS_INFO_AI_GUIDE.md`](docs/SCRIPTS_INFO_AI_GUIDE.md).
 
 ### Reserved fields
 

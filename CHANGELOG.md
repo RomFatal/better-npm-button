@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.3.4
+
+- **Copy scripts-info Instructions for AI** (Scripts view **…** menu and Command Palette) puts a guide on the clipboard for an AI assistant to write a project's `"scripts-info"`: the format, rules per field, how to find out which server each script really uses, and examples for a web app, a desktop app and a monorepo library. Also in the repo at `docs/SCRIPTS_INFO_AI_GUIDE.md`
+
 ## 0.3.3
 
 - **Drag to reorder:** drag scripts within their group and groups among each other; the order is remembered per workspace and across restarts, without touching `package.json`. Drag onto Pinned to pin, out of Pinned to unpin, within Pinned to reorder. **Reset Script Order** in the view's **…** menu clears it

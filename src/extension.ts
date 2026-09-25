@@ -180,6 +180,22 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("runSidebar.showPinnedOnly", () => setPinnedOnly(true)),
     vscode.commands.registerCommand("runSidebar.showAllScripts", () => setPinnedOnly(false))
   );
+  // Puts the scripts-info writing guide (docs/SCRIPTS_INFO_AI_GUIDE.md,
+  // shipped with the extension) on the clipboard, to paste into an AI chat.
+  context.subscriptions.push(
+    vscode.commands.registerCommand("runSidebar.copyAiInstructions", async () => {
+      const guide = vscode.Uri.joinPath(context.extensionUri, "docs", "SCRIPTS_INFO_AI_GUIDE.md");
+      const text = Buffer.from(await vscode.workspace.fs.readFile(guide)).toString("utf8");
+      await vscode.env.clipboard.writeText(text);
+      const choice = await vscode.window.showInformationMessage(
+        'Copied the scripts-info instructions. Paste them into your AI chat and ask it to "add scripts-info to this project".',
+        "Open Guide"
+      );
+      if (choice === "Open Guide") {
+        await vscode.commands.executeCommand("markdown.showPreview", guide);
+      }
+    })
+  );
   context.subscriptions.push(
     vscode.commands.registerCommand("runSidebar.resetOrder", async () => {
       const answer = await vscode.window.showWarningMessage(
