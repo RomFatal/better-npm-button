@@ -145,13 +145,18 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
 
     const items: RunItem[] = [];
 
+    // Pinned scripts sit in a collapsible group at the top, like the
+    // section and stage groups below it.
     if (pinned.length > 0) {
-      items.push(new PinnedHeaderItem());
-      for (let i = 0; i < pinned.length; i++) {
-        items.push(
-          new ScriptItem(packageFile, pinned[i], displayOptions, pinnedPositionFor(i, pinned.length))
-        );
-      }
+      const pinnedGroup = new SectionGroupItem("pinned", "Pinned", "pinned");
+      pinnedGroup.contextValue = "pinnedGroup";
+      pinnedGroup.sectionChildren.push(
+        ...pinned.map(
+          (name, i) =>
+            new ScriptItem(packageFile, name, displayOptions, pinnedPositionFor(i, pinned.length))
+        )
+      );
+      items.push(pinnedGroup);
     }
 
     if (displayOptions.groupBy === "stage") {
@@ -163,7 +168,7 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
 
     for (const name of rest) {
       if (isCommentScriptKey(name)) {
-        currentGroup = new SectionGroupItem(name);
+        currentGroup = new SectionGroupItem(name, formatSectionLabel(name), "list-unordered");
         items.push(currentGroup);
       } else {
         const scriptItem = new ScriptItem(packageFile, name, displayOptions, null);
@@ -209,7 +214,7 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       const key = stage.toLowerCase();
       let group = groups.get(key);
       if (!group) {
-        group = new SectionGroupItem(stage, capitalize(stage));
+        group = new SectionGroupItem(stage, capitalize(stage), stageIcon(stage));
         groups.set(key, group);
       }
       group.sectionChildren.push(item);
@@ -220,7 +225,7 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       if (groups.size === 0) {
         return other;
       }
-      const otherGroup = new SectionGroupItem("other", "Other");
+      const otherGroup = new SectionGroupItem("other", "Other", "symbol-misc");
       otherGroup.sectionChildren.push(...other);
       result.push(otherGroup);
     }
@@ -467,24 +472,38 @@ class MessageItem extends RunItem {
   }
 }
 
-class PinnedHeaderItem extends RunItem {
-  public constructor() {
-    super("Pinned", vscode.TreeItemCollapsibleState.None);
-
-    this.contextValue = "pinnedHeader";
-    this.iconPath = new vscode.ThemeIcon("pinned");
-  }
-}
-
+/**
+ * A collapsible group of scripts: Pinned, a // section, or a stage. Every
+ * group has an icon so group rows line up with each other.
+ */
 class SectionGroupItem extends RunItem {
   public readonly sectionChildren: ScriptItem[] = [];
 
-  public constructor(rawKey: string, label = formatSectionLabel(rawKey)) {
+  public constructor(rawKey: string, label = formatSectionLabel(rawKey), icon = "list-unordered") {
     super(label, vscode.TreeItemCollapsibleState.Expanded);
 
     this.contextValue = "sectionGroup";
     this.tooltip = rawKey;
+    this.iconPath = new vscode.ThemeIcon(icon);
   }
+}
+
+/**
+ * Icons for common stage names, matched by word so "dev", "develop" and
+ * "development" share one. Stages the table doesn't know get a generic icon.
+ */
+const STAGE_ICONS: Array<{ pattern: RegExp; icon: string }> = [
+  { pattern: /^(dev|develop|development|start|serve|run)$/i, icon: "code" },
+  { pattern: /^(check|checks|test|tests|testing|lint|verify|qa|quality)$/i, icon: "beaker" },
+  { pattern: /^(build|builds|package|packaging|bundle|compile)$/i, icon: "package" },
+  { pattern: /^(release|releases|publish|deploy|deployment|ship)$/i, icon: "rocket" },
+  { pattern: /^(maintain|maintenance|housekeeping|tools|utils|utilities|setup|misc)$/i, icon: "tools" },
+  { pattern: /^(docs|documentation)$/i, icon: "book" },
+  { pattern: /^(db|database|data|migrate|migrations)$/i, icon: "database" }
+];
+
+function stageIcon(stage: string): string {
+  return STAGE_ICONS.find(({ pattern }) => pattern.test(stage.trim()))?.icon ?? "layers";
 }
 
 function formatSectionLabel(rawKey: string): string {

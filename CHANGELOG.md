@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.3.1
+
+- **Pinned** is now a collapsible group, like the section and stage groups
+- Stage groups get an icon from their name — code (develop), beaker (check), package (build), rocket (release), tools (maintain), book (docs), database (db) — and a generic icon otherwise; every group row has an icon, so they line up
+- Publishing workflow compares `package.json` with the Marketplace instead of the previous commit, so a version bump that isn't the newest commit in a push still gets published
+
 ## 0.3.0
 
 - **Run status:** a spinning icon while a script runs, then ✓ / ✗ / ■ and how long it took beside its name, with details on hover (uses terminal shell integration, VS Code 1.93+). Setting: `runSidebar.showRunStatus`

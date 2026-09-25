@@ -28,11 +28,11 @@ VS Code already exposes npm scripts in a few places, but the experience is easy 
 - Supports rerunning the last script from the view title
 - Renders `//` comment keys as non-runnable section headers, preserving your groupings
 - Configurable sort order — original, alphabetical, or alphabetical within each section
-- Pin any script to the top of the list with a hover icon; reorder pins via right-click; filter the list to pinned scripts only
+- Pin any script into a collapsible **Pinned** group at the top with a hover icon; reorder pins via right-click; filter the list to pinned scripts only
 - Shows what each script does, from a `"scripts-info"` block in `package.json` — beside the name and on hover ([details](#script-info))
 - Marks scripts that hit production (red cloud) or a local server (green computer), from an `env` field in `"scripts-info"`
 - Shows which scripts are running (spinning icon) and how the last run ended — ✓ / ✗ and how long it took ([details](#run-status))
-- Groups scripts by workflow stage — develop, check, release… — from a `stage` field ([details](#group-by-stage))
+- Groups scripts by workflow stage — develop, check, release… — from a `stage` field, each group with an icon matching its name ([details](#group-by-stage))
 - Asks before running scripts you mark with `confirm`, such as a release ([details](#confirm-before-running))
 - Right-click a script to **Run with Arguments…** or **Open in package.json**
 - Checks `"scripts-info"` against your scripts in the Problems panel, with a quick fix for missing entries ([details](#checking-scripts-info))
@@ -137,7 +137,9 @@ Either way, hovering a script shows both its info and its command. The button in
 
 ### Pinning scripts
 
-Hover any script to reveal a pin icon on the right. Click it to move the script to a **Pinned** section at the top of the list. Pinned scripts show a thumbtack icon and persist across restarts.
+Hover any script to reveal a pin icon on the right. Click it to move the script into the **Pinned** group at the top of the list. Pinned scripts show a thumbtack icon and persist across restarts.
+
+**Pinned** is a collapsible group like the section and stage groups: click its arrow to fold it away. It stays at the top whichever way the list is grouped.
 
 To reorder pinned scripts, right-click a pinned script and choose **Move Up** or **Move Down**. To unpin, hover the script and click the thumbtack icon, or use the right-click menu.
 
@@ -269,8 +271,23 @@ Give each script a `stage` in `"scripts-info"` — the step of your workflow it 
 - Groups appear in the order their stage first appears in `"scripts"`, so reorder `"scripts"` to reorder the groups. Names are shown capitalized; `Develop` and `develop` are the same stage.
 - Scripts without a stage go in a last group, **Other**.
 - `//` section headers aren't shown in this view; click **Group by Section** (list icon) to go back to them.
-- Pinned scripts stay at the top in both views.
+- Pinned scripts stay at the top, in their own **Pinned** group, in both views.
 - The stage also shows as a **Stage:** line on hover.
+
+Each stage group gets an icon from its name:
+
+| Stage name | Icon |
+|---|---|
+| `dev`, `develop`, `development`, `start`, `serve`, `run` | code |
+| `check`, `test`, `testing`, `lint`, `verify`, `qa`, `quality` | beaker |
+| `build`, `package`, `packaging`, `bundle`, `compile` | package |
+| `release`, `publish`, `deploy`, `deployment`, `ship` | rocket |
+| `maintain`, `maintenance`, `housekeeping`, `tools`, `utils`, `setup`, `misc` | tools |
+| `docs`, `documentation` | book |
+| `db`, `database`, `data`, `migrate`, `migrations` | database |
+| anything else | layers |
+
+Names match whole and ignore case, so `Release` gets the rocket and `prerelease` gets the generic icon. **Other** has its own icon, and `//` section groups share a list icon, so every group row lines up.
 
 ### Confirm before running
 
@@ -344,7 +361,7 @@ npm run package:vsix
 
 This repository includes a GitHub Actions workflow at `.github/workflows/publish.yml`.
 It runs when `package.json`, `package-lock.json`, or the workflow file itself changes on `main` or `master`, and it can also be started manually from the Actions tab.
-Marketplace publishing only happens when the `version` field in `package.json` changed compared to the previous commit.
+It publishes when the `version` in `package.json` differs from the version live on the Marketplace (checked with `vsce show`), so a version bump is published even when it isn't the newest of the commits in a push, and a re-run after a failed publish tries again.
 
 Before it can publish, add a GitHub repository secret named `VSCE_PAT`.
 The value must be a Visual Studio Marketplace personal access token with Marketplace manage access.
