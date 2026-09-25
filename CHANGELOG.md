@@ -1,10 +1,13 @@
 # Change Log
 
+## 0.3.3
+
+- **Drag to reorder:** drag scripts within their group and groups among each other; the order is remembered per workspace and across restarts, without touching `package.json`. Drag onto Pinned to pin, out of Pinned to unpin, within Pinned to reorder. **Reset Script Order** in the view's **…** menu clears it
+
 ## 0.3.2
 
 - Collapsed groups and packages stay collapsed when switching between section and stage grouping, toggling the pinned filter, editing `package.json`, and across restarts (stored per workspace). Pinned shares one state across both groupings
 - Develop stage icon is now a flame
-- **Drag to reorder:** drag scripts within their group and groups among each other; the order is remembered per workspace and across restarts, without touching `package.json`. Drag onto Pinned to pin, out of Pinned to unpin, within Pinned to reorder. **Reset Script Order** in the view's **…** menu clears it
 
 ## 0.3.1
 

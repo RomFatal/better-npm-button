@@ -2,7 +2,7 @@
   "name": "better-npm-button",
   "displayName": "Better Npm Button",
   "description": "Run package.json scripts from the Activity Bar: see what each script does, which server it hits and whether it's running, group scripts by stage, pin favorites, and confirm risky ones.",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "publisher": "romfatal",
   "license": "MIT",
   "preview": false,
