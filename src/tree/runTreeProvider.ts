@@ -24,6 +24,11 @@ interface ScriptDisplayOptions {
   packageUri: string;
 }
 
+/** Which groups and packages the user has collapsed, by tree item id. */
+export interface CollapseStore {
+  isCollapsed(id: string): boolean;
+}
+
 export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<RunItem | undefined | null | void>();
 
@@ -36,7 +41,8 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
     private readonly loadPackages: (scope: RunScope) => Promise<PackageScriptFile[]>,
     private readonly pinnedService: PinnedScriptsService,
     private readonly colorService: ScriptColorService,
-    private readonly runState: RunStateService
+    private readonly runState: RunStateService,
+    private readonly collapsed: CollapseStore
   ) {}
 
   public refresh(): void {
@@ -112,11 +118,11 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
         (packageFile) => this.pinnedNames(packageFile).length > 0
       );
       return withPins.length > 0
-        ? withPins.map((packageFile) => new PackageItem(packageFile))
+        ? withPins.map((packageFile) => this.packageItem(packageFile))
         : [new MessageItem(NO_PINS_MESSAGE)];
     }
 
-    return packages.map((packageFile) => new PackageItem(packageFile));
+    return packages.map((packageFile) => this.packageItem(packageFile));
   }
 
   private getScriptItems(
@@ -148,7 +154,8 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
     // Pinned scripts sit in a collapsible group at the top, like the
     // section and stage groups below it.
     if (pinned.length > 0) {
-      const pinnedGroup = new SectionGroupItem("pinned", "Pinned", "pinned");
+      // One id for both views, so Pinned stays folded when switching.
+      const pinnedGroup = this.group(`${packageUri}|pinned`, "pinned", "Pinned", "pinned");
       pinnedGroup.contextValue = "pinnedGroup";
       pinnedGroup.sectionChildren.push(
         ...pinned.map(
@@ -165,10 +172,19 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
     }
 
     let currentGroup: SectionGroupItem | null = null;
+    const seen = new Map<string, number>();
 
     for (const name of rest) {
       if (isCommentScriptKey(name)) {
-        currentGroup = new SectionGroupItem(name, formatSectionLabel(name), "list-unordered");
+        // Two identical headers in one package still need distinct ids.
+        const count = (seen.get(name) ?? 0) + 1;
+        seen.set(name, count);
+        currentGroup = this.group(
+          `${packageUri}|section|${name}|${count}`,
+          name,
+          formatSectionLabel(name),
+          "list-unordered"
+        );
         items.push(currentGroup);
       } else {
         const scriptItem = new ScriptItem(packageFile, name, displayOptions, null);
@@ -181,6 +197,31 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
     }
 
     return items;
+  }
+
+  /**
+   * Groups and packages carry a stable id, and start collapsed if the user
+   * left them collapsed: rebuilding the tree (switching grouping, toggling a
+   * filter, editing package.json) no longer reopens everything.
+   */
+  private group(id: string, rawKey: string, label: string, icon: string): SectionGroupItem {
+    const item = new SectionGroupItem(rawKey, label, icon);
+    item.id = id;
+    item.collapsibleState = this.stateFor(id);
+    return item;
+  }
+
+  private packageItem(packageFile: PackageScriptFile): PackageItem {
+    const item = new PackageItem(packageFile);
+    item.id = `${packageFile.packageJsonUri.fsPath}|package`;
+    item.collapsibleState = this.stateFor(item.id);
+    return item;
+  }
+
+  private stateFor(id: string): vscode.TreeItemCollapsibleState {
+    return this.collapsed.isCollapsed(id)
+      ? vscode.TreeItemCollapsibleState.Collapsed
+      : vscode.TreeItemCollapsibleState.Expanded;
   }
 
   private pinnedNames(packageFile: PackageScriptFile): string[] {
@@ -214,7 +255,12 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       const key = stage.toLowerCase();
       let group = groups.get(key);
       if (!group) {
-        group = new SectionGroupItem(stage, capitalize(stage), stageIcon(stage));
+        group = this.group(
+          `${packageFile.packageJsonUri.fsPath}|stage|${key}`,
+          stage,
+          capitalize(stage),
+          stageIcon(stage)
+        );
         groups.set(key, group);
       }
       group.sectionChildren.push(item);
@@ -225,7 +271,12 @@ export class RunTreeProvider implements vscode.TreeDataProvider<RunItem> {
       if (groups.size === 0) {
         return other;
       }
-      const otherGroup = new SectionGroupItem("other", "Other", "symbol-misc");
+      const otherGroup = this.group(
+        `${packageFile.packageJsonUri.fsPath}|stage|\u0000other`,
+        "other",
+        "Other",
+        "symbol-misc"
+      );
       otherGroup.sectionChildren.push(...other);
       result.push(otherGroup);
     }
@@ -493,7 +544,7 @@ class SectionGroupItem extends RunItem {
  * "development" share one. Stages the table doesn't know get a generic icon.
  */
 const STAGE_ICONS: Array<{ pattern: RegExp; icon: string }> = [
-  { pattern: /^(dev|develop|development|start|serve|run)$/i, icon: "code" },
+  { pattern: /^(dev|develop|development|start|serve|run)$/i, icon: "flame" },
   { pattern: /^(check|checks|test|tests|testing|lint|verify|qa|quality)$/i, icon: "beaker" },
   { pattern: /^(build|builds|package|packaging|bundle|compile)$/i, icon: "package" },
   { pattern: /^(release|releases|publish|deploy|deployment|ship)$/i, icon: "rocket" },

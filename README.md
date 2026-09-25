@@ -141,6 +141,10 @@ Hover any script to reveal a pin icon on the right. Click it to move the script 
 
 **Pinned** is a collapsible group like the section and stage groups: click its arrow to fold it away. It stays at the top whichever way the list is grouped.
 
+### Folded groups stay folded
+
+Groups and packages you collapse stay collapsed when the list is rebuilt — switching between section and stage grouping, turning the pinned filter on or off, or editing `package.json` — and after VS Code restarts. **Pinned** shares one state across both groupings; section groups and stage groups each remember their own. Stored per workspace.
+
 To reorder pinned scripts, right-click a pinned script and choose **Move Up** or **Move Down**. To unpin, hover the script and click the thumbtack icon, or use the right-click menu.
 
 ### Show only pinned
@@ -278,7 +282,7 @@ Each stage group gets an icon from its name:
 
 | Stage name | Icon |
 |---|---|
-| `dev`, `develop`, `development`, `start`, `serve`, `run` | code |
+| `dev`, `develop`, `development`, `start`, `serve`, `run` | flame |
 | `check`, `test`, `testing`, `lint`, `verify`, `qa`, `quality` | beaker |
 | `build`, `package`, `packaging`, `bundle`, `compile` | package |
 | `release`, `publish`, `deploy`, `deployment`, `ship` | rocket |

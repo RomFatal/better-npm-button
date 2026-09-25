@@ -8,7 +8,8 @@ import { locatePackageJson } from "./services/packageJsonLocator";
 import { RunStateService } from "./services/runStateService";
 import { ScriptsInfoValidator, isPackageJson } from "./services/scriptsInfoValidator";
 import { ScriptRunRequest, TerminalService } from "./services/terminalService";
-import { RunTreeProvider, ScriptItem, ScriptRunItem } from "./tree/runTreeProvider";
+import { RunItem, RunTreeProvider, ScriptItem, ScriptRunItem } from "./tree/runTreeProvider";
+import { CollapseStateService } from "./services/collapseStateService";
 
 export function activate(context: vscode.ExtensionContext): void {
   const packageDiscoveryService = new PackageDiscoveryService();
@@ -18,11 +19,13 @@ export function activate(context: vscode.ExtensionContext): void {
   const runState = new RunStateService();
   const terminalService = new TerminalService(runState);
   const validator = new ScriptsInfoValidator();
+  const collapseStore = new CollapseStateService(context.workspaceState);
   const treeProvider = new RunTreeProvider(
     (scope) => packageDiscoveryService.listPackages(scope),
     pinnedService,
     colorService,
-    runState
+    runState,
+    collapseStore
   );
 
   // The last script run from the sidebar, so Rerun Last goes through the
@@ -44,8 +47,18 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(terminalService, runState, validator);
   context.subscriptions.push(runState.onDidChange(() => treeProvider.refresh()));
+  // createTreeView (not registerTreeDataProvider) to hear collapse/expand,
+  // which is saved per workspace and read back when the tree is rebuilt.
+  const treeView = vscode.window.createTreeView("runSidebar.scripts", { treeDataProvider: treeProvider });
+  const rememberCollapsed = (element: RunItem, collapsed: boolean): void => {
+    if (element.id) {
+      void collapseStore.set(element.id, collapsed);
+    }
+  };
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider("runSidebar.scripts", treeProvider)
+    treeView,
+    treeView.onDidCollapseElement((event) => rememberCollapsed(event.element, true)),
+    treeView.onDidExpandElement((event) => rememberCollapsed(event.element, false))
   );
   context.subscriptions.push(
     vscode.commands.registerCommand("runSidebar.refresh", () => {

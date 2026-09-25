@@ -1,9 +1,14 @@
 # Change Log
 
+## 0.3.2
+
+- Collapsed groups and packages stay collapsed when switching between section and stage grouping, toggling the pinned filter, editing `package.json`, and across restarts (stored per workspace). Pinned shares one state across both groupings
+- Develop stage icon is now a flame
+
 ## 0.3.1
 
 - **Pinned** is now a collapsible group, like the section and stage groups
-- Stage groups get an icon from their name — code (develop), beaker (check), package (build), rocket (release), tools (maintain), book (docs), database (db) — and a generic icon otherwise; every group row has an icon, so they line up
+- Stage groups get an icon from their name — code (develop; a flame since 0.3.2), beaker (check), package (build), rocket (release), tools (maintain), book (docs), database (db) — and a generic icon otherwise; every group row has an icon, so they line up
 - Publishing workflow compares `package.json` with the Marketplace instead of the previous commit, so a version bump that isn't the newest commit in a push still gets published
 
 ## 0.3.0
